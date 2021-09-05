@@ -1,0 +1,8 @@
+﻿Resizable=false
+TransparentFramebuffer=false
+Decorated=true
+FocusOnShow=true
+OpenglDebugContext=true
+OpenglForwardCompatible=true
+CenterCursor=true
+DoubleBuffer=true
