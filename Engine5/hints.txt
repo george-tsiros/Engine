@@ -6,3 +6,7 @@ OpenglDebugContext=true
 OpenglForwardCompatible=true
 CenterCursor=true
 DoubleBuffer=true
+ContextVersionMajor=4
+ContextVersionMinor=6
+OpenglProfile=Profile.Core
+OpenglDebugContext=true

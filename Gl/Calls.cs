@@ -31,7 +31,8 @@ namespace Gl {
         private static readonly glCountedArray glCreateFramebuffers;
         private static readonly glCountedArray glCreateRenderbuffers;
         private static readonly glCountedArray glCreateVertexArrays;
-        public static readonly glCountedArray glDeleteBuffers;
+        private static readonly glDeleteArray glDeleteBuffers;
+        private static readonly glDeleteArray glDeleteTextures;
         public static readonly glCreateProgram glCreateProgram;
         public static readonly glCreateShader glCreateShader;
         private static readonly glCreateTextures glCreateTextures;
@@ -120,46 +121,48 @@ namespace Gl {
             glGetIntegerv(id, &i);
             return i;
         }
-        public static void TextureBaseLevel (uint texture, int level) => glTextureParameteri(texture, Const.TEXTURE_BASE_LEVEL, level);
-        public static void TextureMaxLevel (uint texture, int level) => glTextureParameteri(texture, Const.TEXTURE_MAX_LEVEL, level);
-        public static void TextureFilter (uint texture, MagFilter filter) => glTextureParameteri(texture, Const.TEXTURE_MAG_FILTER, (int)filter);
-        public static void TextureFilter (uint texture, MinFilter filter) => glTextureParameteri(texture, Const.TEXTURE_MIN_FILTER, (int)filter);
-        public static void TextureWrap (uint texture, WrapCoordinate c, Wrap w) => glTextureParameteri(texture, (int)c, (int)w);
+        public static void TextureBaseLevel (int texture, int level) => glTextureParameteri(texture, Const.TEXTURE_BASE_LEVEL, level);
+        public static void TextureMaxLevel (int texture, int level) => glTextureParameteri(texture, Const.TEXTURE_MAX_LEVEL, level);
+        public static void TextureFilter (int texture, MagFilter filter) => glTextureParameteri(texture, Const.TEXTURE_MAG_FILTER, (int)filter);
+        public static void TextureFilter (int texture, MinFilter filter) => glTextureParameteri(texture, Const.TEXTURE_MIN_FILTER, (int)filter);
+        public static void TextureWrap (int texture, WrapCoordinate c, Wrap w) => glTextureParameteri(texture, (int)c, (int)w);
 
-        public static void Uniform (uint uniform, Matrix4x4 m) => glUniformMatrix4fv(uniform, 1, false, m);
-        public static void Uniform (uint uniform, Vector4 v) => glUniform4f(uniform, v.X, v.Y, v.Z, v.W);
-        public static void Uniform (uint uniform, Vector3 v) => glUniform3f(uniform, v.X, v.Y, v.Z);
-        public static void Uniform (uint uniform, Vector2 v) => glUniform2f(uniform, v.X, v.Y);
-        public static void Uniform (uint uniform, float f) => glUniform1f(uniform, f);
-        public static void Uniform (uint uniform, int i) => glUniform1i(uniform, i);
+        public static void Uniform (int uniform, Matrix4x4 m) => glUniformMatrix4fv(uniform, 1, false, m);
+        public static void Uniform (int uniform, Vector4 v) => glUniform4f(uniform, v.X, v.Y, v.Z, v.W);
+        public static void Uniform (int uniform, Vector3 v) => glUniform3f(uniform, v.X, v.Y, v.Z);
+        public static void Uniform (int uniform, Vector2 v) => glUniform2f(uniform, v.X, v.Y);
+        public static void Uniform (int uniform, float f) => glUniform1f(uniform, f);
+        public static void Uniform (int uniform, int i) => glUniform1i(uniform, i);
 
-        public static uint[] CreateVertexArrays (int count) => Create(count, glCreateVertexArrays);
-        public static uint[] CreateBuffers (int count) => Create(count, glCreateBuffers);
-        public static uint[] CreateFramebuffers (int count) => Create(count, glCreateFramebuffers);
-        public static uint[] CreateRenderbuffers (int count) => Create(count, glCreateRenderbuffers);
-        unsafe public static void GetActiveUniform (uint program, uint index, int maxUniformNameLength, out int length, out int size, out UniformType type, out string name) {
+        public static int[] CreateVertexArrays (int count) => Create(count, glCreateVertexArrays);
+        public static int[] CreateBuffers (int count) => Create(count, glCreateBuffers);
+        public static int[] CreateFramebuffers (int count) => Create(count, glCreateFramebuffers);
+        public static int[] CreateRenderbuffers (int count) => Create(count, glCreateRenderbuffers);
+        public static void DeleteTextures (int[] textures) => glDeleteTextures(textures.Length, textures);
+        public static void DeleteBuffers (int[] buffers) => glDeleteBuffers(buffers.Length, buffers);
+        unsafe public static void GetActiveUniform (int program, int index, int maxUniformNameLength, out int length, out int size, out UniformType type, out string name) {
             Span<byte> bytes = stackalloc byte[maxUniformNameLength + 1];
             fixed (byte* ptr = bytes)
                 glGetActiveUniform(program, index, maxUniformNameLength, out length, out size, out type, ptr);
             name = System.Text.Encoding.ASCII.GetString(bytes.Slice(0, length));
         }
-        unsafe public static void GetActiveAttrib (uint program, uint index, int maxAttribNameLength, out int length, out int size, out AttributeType type, out string name) {
+        unsafe public static void GetActiveAttrib (int program, int index, int maxAttribNameLength, out int length, out int size, out AttributeType type, out string name) {
             Span<byte> bytes = stackalloc byte[maxAttribNameLength + 1];
             fixed (byte* ptr = bytes)
                 glGetActiveAttrib(program, index, maxAttribNameLength, out length, out size, out type, ptr);
             name = System.Text.Encoding.ASCII.GetString(bytes.Slice(0, length));
         }
-        private static uint[] Create (int count, glCountedArray f) {
-            var names = new uint[count];
+        private static int[] Create (int count, glCountedArray f) {
+            var names = new int[count];
             f(count, names);
             return names;
         }
-        public static uint[] Create2DTextures (int count) {
-            var uints = new uint[count];
-            glCreateTextures(Const.TEXTURE_2D, count, uints);
-            return uints;
+        public static int[] Create2DTextures (int count) {
+            var ints = new int[count];
+            glCreateTextures(Const.TEXTURE_2D, count, ints);
+            return ints;
         }
-        public static T GetTextureParameteri<T> (uint texture, TextureParameter parameter) where T : Enum {
+        public static T GetTextureParameteri<T> (int texture, TextureParameter parameter) where T : Enum {
             var t = new int[1];
             glGetTextureParameteriv(texture, parameter, t);
             return (T)Enum.ToObject(typeof(T), t[0]);

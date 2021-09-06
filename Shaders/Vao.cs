@@ -9,14 +9,14 @@
             Draw();
         }
         protected abstract void Draw ();
-        protected abstract uint Program { get; }
+        protected abstract int Program { get; }
     }
     public class PlotVAO:Vao {
         public PlotVAO (VertexBuffer<float> x, VertexBuffer<float> y) : base() {
             V.Assign(x, Plot.X);
             V.Assign(y, Plot.Y);
         }
-        protected override uint Program => Plot.Id;
+        protected override int Program => Plot.Id;
         private Notifiable<float> a, b;
         private Notifiable<Vector4> color;
         public void A (float value) => a.Value = value;
@@ -36,7 +36,7 @@
         }
     }
     public class PassThroughVao:Vao {
-        protected override uint Program => PassThrough.Id;
+        protected override int Program => PassThrough.Id;
         private Notifiable<int> tex;
         public void Tex (int value) => tex.Value = value;
         public void VertexPosition (VertexBuffer<Vector4> b) => V.Assign(b, PassThrough.VertexPosition);
@@ -48,7 +48,7 @@
     }
 
     public class SkyboxVao:Vao {
-        protected override uint Program => SkyBox.Id;
+        protected override int Program => SkyBox.Id;
         private Notifiable<Matrix4x4> projection;
         private Notifiable<Matrix4x4> view;
         private Notifiable<int> tex;

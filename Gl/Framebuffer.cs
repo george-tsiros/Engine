@@ -2,8 +2,8 @@ namespace Gl {
     using static Calls;
 
     public sealed class Framebuffer {
-        public static implicit operator uint (Framebuffer framebuffer) => framebuffer.Id;
-        public uint Id { get; }
+        public static implicit operator int (Framebuffer framebuffer) => framebuffer.Id;
+        public int Id { get; }
         public int Width { get; }
         public int Height { get; }
         public FramebufferStatus Status => glCheckNamedFramebufferStatus(Id, FramebufferTarget.Framebuffer);

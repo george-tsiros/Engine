@@ -1,35 +1,46 @@
 namespace Gl {
     using System;
+    using System.Diagnostics;
     using static Calls;
 
-    sealed public class Sampler2D {
-        public uint Id { get; }
+    sealed public class Sampler2D:IDisposable {
+        public int Id { get; }
         public int Width { get; }
         public int Height { get; }
         public TextureInternalFormat SizedFormat { get; }
-        public static implicit operator uint (Sampler2D sampler) => sampler.Id;
-        public void BindTo (uint t) {
+        public static implicit operator int (Sampler2D sampler) => sampler.Id;
+        private MagFilter mag;
+        private MinFilter min;
+        private bool disposed;
+        private Wrap wrap;
+        public void BindTo (int t) {
+            Debug.Assert(!disposed);
             State.ActiveTexture = t;
             glBindTexture(Const.TEXTURE_2D, Id);
         }
-        private Wrap wrap;
         public Wrap Wrap {
             get => wrap;
             set {
+                Debug.Assert(!disposed);
                 wrap = value;
                 TextureWrap(Id, WrapCoordinate.WrapS, value);
                 TextureWrap(Id, WrapCoordinate.WrapT, value);
             }
         }
-        private MinFilter min;
         public MinFilter Min {
             get => min;
-            set => TextureFilter(Id, min = value);
+            set {
+                Debug.Assert(!disposed);
+                TextureFilter(Id, min = value);
+            }
         }
-        private MagFilter mag;
+
         public MagFilter Mag {
             get => mag;
-            set => TextureFilter(Id, mag = value);
+            set {
+                Debug.Assert(!disposed);
+                TextureFilter(Id, mag = value);
+            }
         }
         private Sampler2D () => Id = Create2DTextures(1)[0];
         public Sampler2D (int width, int height, TextureInternalFormat sizedFormat) : this() {
@@ -53,5 +64,17 @@ namespace Gl {
         private static readonly int[] formats = { Const.RED, Const.RG, Const.BGR, Const.BGRA };
         private static TextureInternalFormat SizedFormatWith (int channels) => 1 <= channels && channels <= 4 ? sizedFormats[channels - 1] : throw new Exception();
         private static int FormatWith (int channels) => 1 <= channels && channels <= 4 ? formats[channels - 1] : throw new Exception();
+
+        private void Dispose (bool disposing) {
+            if (!disposed) {
+                if (disposing) 
+                    DeleteTextures(new int[] { this });
+                disposed = true;
+            }
+        }
+        public void Dispose () {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
     }
 }

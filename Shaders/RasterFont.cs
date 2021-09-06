@@ -6,32 +6,32 @@ namespace Shaders {
 
         //size 1, type Vector2
         [GlAttrib("char")]
-        public static uint Char { get; }
+        public static int Char { get; }
 
         //size 1, type Vector2
         [GlAttrib("offset")]
-        public static uint Offset { get; }
+        public static int Offset { get; }
 
         //size 1, type Vector2
         [GlAttrib("vertex")]
-        public static uint Vertex { get; }
+        public static int Vertex { get; }
 
         //size 1, type Vector2
         [GlUniform("fontSize")]
-        private readonly static uint fontSize;
+        private readonly static int fontSize;
         public static void FontSize (Vector2 v) => Calls.Uniform(fontSize, v);
 
         //size 1, type Vector2
         [GlUniform("screenSize")]
-        private readonly static uint screenSize;
+        private readonly static int screenSize;
         public static void ScreenSize (Vector2 v) => Calls.Uniform(screenSize, v);
 
         //size 1, type Sampler2D
         [GlUniform("font")]
-        private readonly static uint font;
+        private readonly static int font;
         public static void Font (int v) => Calls.Uniform(font, v);
 
-        public static uint Id { get; }
+        public static int Id { get; }
         static RasterFont () => ParsedShader.Prepare(typeof(RasterFont));
 #pragma warning restore CS0649
     }

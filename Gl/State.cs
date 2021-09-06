@@ -11,8 +11,8 @@ namespace Gl {
             }
         }
 
-        public static uint ActiveTexture {
-            get => (uint)(GetInteger(Const.ACTIVE_TEXTURE) - Const.TEXTURE0);
+        public static int ActiveTexture {
+            get => (int)(GetInteger(Const.ACTIVE_TEXTURE) - Const.TEXTURE0);
             set {
                 if (ActiveTexture != value)
                     glActiveTexture(Const.TEXTURE0 + value);
@@ -47,29 +47,29 @@ namespace Gl {
                     glDepthFunc(value);
             }
         }
-        public static uint Framebuffer {
-            get => (uint)GetInteger(Const.FRAMEBUFFER_BINDING);
+        public static int Framebuffer {
+            get => (int)GetInteger(Const.FRAMEBUFFER_BINDING);
             set {
                 if (Framebuffer != value)
                     glBindFramebuffer(Const.FRAMEBUFFER, value);
             }
         }
-        public static uint Program {
-            get => (uint)GetInteger(Const.CURRENT_PROGRAM);
+        public static int Program {
+            get => (int)GetInteger(Const.CURRENT_PROGRAM);
             set {
                 if (value != Program)
                     glUseProgram(value);
             }
         }
-        public static uint ArrayBuffer {
-            get => (uint)GetInteger(Const.ARRAY_BUFFER_BINDING);
+        public static int ArrayBuffer {
+            get => (int)GetInteger(Const.ARRAY_BUFFER_BINDING);
             set {
                 if (value != ArrayBuffer)
                     glBindBuffer(BufferTarget.Array, value);
             }
         }
-        public static uint VertexArray {
-            get => (uint)GetInteger(Const.VERTEX_ARRAY_BINDING);
+        public static int VertexArray {
+            get => (int)GetInteger(Const.VERTEX_ARRAY_BINDING);
             set {
                 if (value != VertexArray)
                     glBindVertexArray(value);

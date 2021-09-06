@@ -62,7 +62,7 @@ namespace ShaderGen {
         }
         //static bool IsReserved (string name) => name == "float" || name == "double" || name == "byte" || name == "char";
         private static bool IsPrimitive (string name) => name == "float" || name == "double" || name == "byte" || name == "char";
-        private static void DoProgram (uint program, string className, StreamWriter f) {
+        private static void DoProgram (int program, string className, StreamWriter f) {
             f.Write($@"namespace Shaders {{
     using Gl;
     using System.Numerics;
@@ -71,19 +71,19 @@ namespace ShaderGen {
 ");
             glGetProgramiv(program, ProgramParameter.ActiveAttributes, out int attrCount);
             glGetProgramiv(program, ProgramParameter.ActiveAttributeMaxLength, out int maxAttrLength);
-            for (var i = 0u; i < attrCount; ++i) {
+            for (var i = 0; i < attrCount; ++i) {
                 GetActiveAttrib(program, i, maxAttrLength, out _, out var size, out var type, out var name);
                 if (name.StartsWith("gl_"))
                     continue;
                 f.Write($@"
         //size {size}, type {type}
         [GlAttrib(""{name}"")]
-        public static uint {UppercaseFirst(name)} {{ get; }}
+        public static int {UppercaseFirst(name)} {{ get; }}
 ");
             }
             glGetProgramiv(program, ProgramParameter.ActiveUniforms, out int uniformCount);
             glGetProgramiv(program, ProgramParameter.ActiveUniformMaxLength, out int maxUniformLength);
-            for (var i = 0u; i < uniformCount; ++i) {
+            for (var i = 0; i < uniformCount; ++i) {
                 GetActiveUniform(program, i, maxUniformLength, out _, out var size, out var type, out var name);
                 if (name.StartsWith("gl_"))
                     continue;
@@ -92,12 +92,12 @@ namespace ShaderGen {
                 f.Write($@"
         //size {size}, type {type}
         [GlUniform(""{name}"")]
-        private readonly static uint {fieldName};
+        private readonly static int {fieldName};
         public static void {UppercaseFirst(name)} ({UniformTypeToTypeName(type)} v) => Calls.Uniform({fieldName}, v);
 ");
             }
             f.Write($@"
-        public static uint Id {{ get; }}
+        public static int Id {{ get; }}
         static {className} () => ParsedShader.Prepare(typeof({className}));
 #pragma warning restore CS0649
     }}

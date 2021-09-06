@@ -5,8 +5,8 @@ namespace Gl {
     using static Calls;
 
     sealed public class VertexBuffer<T> where T : unmanaged {
-        public static implicit operator uint (VertexBuffer<T> b) => b.Id;
-        public uint Id { get; }
+        public static implicit operator int (VertexBuffer<T> b) => b.Id;
+        public int Id { get; }
         public int ElementSize { get; }
         public int Capacity { get; }
         private VertexBuffer () => (Id, ElementSize) = (CreateBuffers(1)[0], Marshal.SizeOf<T>());

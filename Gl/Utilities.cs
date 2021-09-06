@@ -20,7 +20,7 @@ namespace Gl {
         public static FieldInfo GetBackingField (Type type, PropertyInfo prop, BindingFlags flags = BindingFlags.Instance) => type.GetField($"<{prop.Name}>k__BackingField", BindingFlags.NonPublic | flags);
 
         public static bool TryGetBackingField (Type type, PropertyInfo prop, out FieldInfo eh, BindingFlags flags = BindingFlags.Instance) => (eh = GetBackingField(type, prop, flags)) != null;
-        public static uint ShaderFromString (int type, string source) {
+        public static int ShaderFromString (int type, string source) {
             var vs = Calls.glCreateShader(type);
             Calls.glShaderSource(vs, 1, new string[] { source }, null);
             Calls.glCompileShader(vs);
@@ -29,7 +29,7 @@ namespace Gl {
                 ThrowThing(Calls.glGetShaderInfoLog, vs, length);
             return vs;
         }
-        public static uint ProgramFromStrings (string vertexSource, string fragmentSource) {
+        public static int ProgramFromStrings (string vertexSource, string fragmentSource) {
             var vertexShader = ShaderFromString(Const.VERTEX_SHADER, vertexSource);
             var fragmentShader = ShaderFromString(Const.FRAGMENT_SHADER, fragmentSource);
             var program = Calls.glCreateProgram();
@@ -43,7 +43,7 @@ namespace Gl {
             Calls.glDeleteShader(fragmentShader);
             return program;
         }
-        unsafe public static void ThrowThing (glGet_InfoLog f, uint name, int length) {
+        unsafe public static void ThrowThing (glGet_InfoLog f, int name, int length) {
             Span<byte> bytes = stackalloc byte[length + 1];
             fixed (byte* ptr = bytes)
                 f(name, bytes.Length, ref length, ptr);

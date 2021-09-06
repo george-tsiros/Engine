@@ -5,20 +5,20 @@ namespace Gl {
     using static Calls;
 
     sealed public class VertexArray {
-        public static implicit operator uint (VertexArray b) => b.Id;
-        public uint Id { get; } = CreateVertexArrays(1)[0];
+        public static implicit operator int (VertexArray b) => b.Id;
+        public int Id { get; } = CreateVertexArrays(1)[0];
         //public void Assign<T> (VertexBuffer<T> buffer, uint location) where T : unmanaged => Assign<T>(buffer, location, 0u);
-        public void Assign<T> (VertexBuffer<T> buffer, uint location, uint divisor=0u) where T : unmanaged {
+        public void Assign<T> (VertexBuffer<T> buffer, int location, int divisor = 0) where T : unmanaged {
             State.VertexArray = this;
             glBindBuffer(BufferTarget.Array, buffer);
             var (size, type) = SizeAndTypeOf(typeof(T));
             if (size > 4)
-                for (var i = 0u; i < 4; ++i)
+                for (var i = 0; i < 4; ++i)
                     Attrib(this, location + i, 4, type, 16 * sizeof(float), 4 * i * sizeof(float), divisor);
             else
                 Attrib(this, location, size, type, 0, 0, divisor);
         }
-        private static void Attrib (uint id, uint location, int size, AttribType type, int stride, uint offset, uint divisor = 0u) {
+        private static void Attrib (int id, int location, int size, AttribType type, int stride, int offset, int divisor) {
             glEnableVertexArrayAttrib(id, location);
             glVertexAttribPointer(location, size, type, false, stride, new(offset));
             glVertexAttribDivisor(location, divisor);

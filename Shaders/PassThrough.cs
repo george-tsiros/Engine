@@ -6,14 +6,14 @@ namespace Shaders {
 
         //size 1, type Vector4
         [GlAttrib("vertexPosition")]
-        public static uint VertexPosition { get; }
+        public static int VertexPosition { get; }
 
         //size 1, type Sampler2D
         [GlUniform("tex")]
-        private readonly static uint tex;
+        private readonly static int tex;
         public static void Tex (int v) => Calls.Uniform(tex, v);
 
-        public static uint Id { get; }
+        public static int Id { get; }
         static PassThrough () => ParsedShader.Prepare(typeof(PassThrough));
 #pragma warning restore CS0649
     }

@@ -27,14 +27,14 @@ namespace Shaders {
                     var location = Calls.glGetAttribLocation(p, attr.Name);
                     if (location < 0)
                         throw new Exception($"could not find attribute '{attr.Name}' in {type.Name}");
-                    fi.SetValue(null, (uint)location);
+                    fi.SetValue(null, location);
                 }
             foreach (var field in type.GetFields(BindingFlags.NonPublic | BindingFlags.Static)) {
                 if (GetAttribute<GlUniformAttribute>(field, false) is GlUniformAttribute attr) {
                     var location = Calls.glGetUniformLocation(p, attr.Name);
                     if (location < 0)
                         throw new Exception($"could not find uniform '{attr.Name}' in {type.Name}");
-                    field.SetValue(null, (uint)location);
+                    field.SetValue(null, location);
                 }
             }
         }

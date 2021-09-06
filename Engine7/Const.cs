@@ -1,4 +1,4 @@
-namespace Gl;
+namespace Engine;
 
 public static class Const {
 #pragma warning disable IDE1006 // Naming Styles
@@ -1039,8 +1039,8 @@ public static class Const {
     public const int FRAMEBUFFER = 0x8D40;
     public const int RENDERBUFFER = 0x8D41;
     public const int RGBA2 = 0x8055;
-    public const int DEPTH_COMPONENT24 = 0x81a6;
-    public const int DEPTH_COMPONENT32 = 0x81a7;
+    public const int DEPTH_COMPONENT24 = 0x81A6;
+    public const int DEPTH_COMPONENT32 = 0x81A7;
     public const int RGB32F = 0x8815;
     public const int STENCIL_INDEX1 = 0x8D46;
     public const int STENCIL_INDEX4 = 0x8D47;

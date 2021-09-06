@@ -6,38 +6,38 @@ namespace Shaders {
 
         //size 1, type Vector4
         [GlAttrib("normal")]
-        public static uint Normal { get; }
+        public static int Normal { get; }
 
         //size 1, type Vector4
         [GlAttrib("vertex")]
-        public static uint Vertex { get; }
+        public static int Vertex { get; }
 
         //size 1, type Vector4
         [GlUniform("color")]
-        private readonly static uint color;
+        private readonly static int color;
         public static void Color (Vector4 v) => Calls.Uniform(color, v);
 
         //size 1, type Vector4
         [GlUniform("lightPosition")]
-        private readonly static uint lightPosition;
+        private readonly static int lightPosition;
         public static void LightPosition (Vector4 v) => Calls.Uniform(lightPosition, v);
 
         //size 1, type Matrix4x4
         [GlUniform("model")]
-        private readonly static uint model;
+        private readonly static int model;
         public static void Model (Matrix4x4 v) => Calls.Uniform(model, v);
 
         //size 1, type Matrix4x4
         [GlUniform("projection")]
-        private readonly static uint projection;
+        private readonly static int projection;
         public static void Projection (Matrix4x4 v) => Calls.Uniform(projection, v);
 
         //size 1, type Matrix4x4
         [GlUniform("view")]
-        private readonly static uint view;
+        private readonly static int view;
         public static void View (Matrix4x4 v) => Calls.Uniform(view, v);
 
-        public static uint Id { get; }
+        public static int Id { get; }
         static PointLightFlat () => ParsedShader.Prepare(typeof(PointLightFlat));
 #pragma warning restore CS0649
     }
