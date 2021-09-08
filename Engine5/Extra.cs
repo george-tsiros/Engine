@@ -1,38 +1,31 @@
 namespace Engine;
 
 using System;
+using System.IO;
+using System.Runtime.CompilerServices;
 using System.Diagnostics;
 using System.Numerics;
-public enum DataType:byte {
-    Null = 0,
-    Byte,
-    Int16,
-    Int32,
-    Int64,
-    UInt16,
-    UInt32,
-    UInt64,
-    String,
-}
-static class Extra {
-    public static int ToChars (int i, Span<byte> a) {
-        var isNegative = i < 0;
+public static class Extra {
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static void PushAscii (Span<byte> a, ref long int64, ref int offset) {
+        int64 = Math.DivRem(int64, 10, out var d);
+        a[--offset] = (byte)(d + '0');
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static int ToChars (long int64, Span<byte> bytes) {
+        var isNegative = int64 < 0l;
         if (isNegative)
-            i = -i;
-        var l = 0;
+            int64 = -int64;
+        var offset = 20;
         do
-            PushAscii(a, ref i, ref l);
-        while (i != 0);
+            PushAscii(bytes, ref int64, ref offset);
+        while (int64 != 0);
         if (isNegative)
-            a[l++] = (byte)'-';
-        return l;
+            bytes[--offset] = (byte)'-';
+        return offset;
     }
 
-    private static void PushAscii (Span<byte> a, ref int i, ref int l) {
-        var d = i % 10;
-        a[l++] = (byte)(d + '0');
-        i /= 10;
-    }
 
     public static Vector2 ByteToVector (byte b) => new(b & 0xf, b >> 4);
 
@@ -54,19 +47,6 @@ static class Extra {
     }
     public static float Clamp (ref float angle, float delta, float min, float max) => angle = (float)Math.Max(min, Math.Min(angle + delta, max));
     public static double Clamp (ref double angle, double delta, double min, double max) => angle = Math.Max(min, Math.Min(angle + delta, max));
-
-    public static void Append (Span<Vector2> vectors, ref int position, int value) {
-        Span<byte> bytes = stackalloc byte[10];
-        var l = ToChars(value, bytes);
-        while (--l >= 0)
-            Append(vectors, ref position, bytes[l]);
-    }
-    public static void Append (Span<Vector2> vectors, ref int position, byte b) => vectors[position++] = ByteToVector(b);
-    public static void Append (Span<Vector2> vectors, ref int position, ReadOnlySpan<byte> bytes) {
-        var count = bytes.Length;
-        for (var i = 0; i < count; ++i)
-            Append(vectors, ref position, bytes[i]);
-    }
 
     public static (float min, float max) Extrema (float[] ycoords) {
 #if !true

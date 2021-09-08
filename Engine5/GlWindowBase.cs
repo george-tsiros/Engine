@@ -26,6 +26,13 @@ class GlWindowBase:IDisposable {
         if (File.Exists("hints.txt"))
             SetHintsFrom("hints.txt");
     }
+    private static FieldInfo GetEnumFieldInfo (Assembly a, string s) {
+        var parts = s.Split('.');
+        if (parts.Length != 2)
+            return null;
+        const BindingFlags publicStaticIgnoreCase = BindingFlags.Public | BindingFlags.Static | BindingFlags.IgnoreCase;
+        return a.GetType($"GLFW.{parts[0]}", false, true)?.GetField(parts[1], publicStaticIgnoreCase);
+    }
     private static bool TryGetHintValue (string hintValue, out int value) {
         if (bool.TryParse(hintValue, out var b)) {
             value = b ? 1 : 0;
@@ -33,8 +40,7 @@ class GlWindowBase:IDisposable {
         }
         if (int.TryParse(hintValue, out value))
             return true;
-        var parts = hintValue.Split('.');
-        if (parts.Length == 2 && typeof(Glfw).Assembly.GetType($"GLFW.{parts[0]}", false, true) is Type t && t.GetField(parts[1], BindingFlags.Static | BindingFlags.Public | BindingFlags.IgnoreCase) is FieldInfo fi) {
+        if (GetEnumFieldInfo(typeof(Glfw).Assembly, hintValue) is FieldInfo fi) {
             value = (int)fi.GetValue(null);
             return true;
         }
@@ -44,13 +50,11 @@ class GlWindowBase:IDisposable {
     private static void SetHintsFrom (string filepath) {
         var hintRegex = new Regex(@"^ *(\w+) *= *(true|false|\d+|(\w+)\.(\w+)) *$");
         foreach (var line in File.ReadAllLines(filepath))
-            if (hintRegex.TryMatch(line, out var m)) {
-                if (Enum.TryParse<Hint>(m.Groups[1].Value, true, out var hint)) {
-                    if (TryGetHintValue(m.Groups[2].Value, out var i))
-                        Glfw.WindowHint(hint, i);
-                    else
-                        throw new ApplicationException($"could not get an int out of '{m.Groups[2].Value}' for {hint}");
-                }
+            if (hintRegex.TryMatch(line, out var m) && Enum.TryParse<Hint>(m.Groups[1].Value, true, out var hint)) {
+                if (TryGetHintValue(m.Groups[2].Value, out var i))
+                    Glfw.WindowHint(hint, i);
+                else
+                    throw new ApplicationException($"could not get an int out of '{m.Groups[2].Value}' for {hint}");
             }
     }
 
@@ -58,7 +62,7 @@ class GlWindowBase:IDisposable {
         Window = Glfw.CreateWindow(Width = width, Height = height, GetType().Name, monitor, Window.None);
         Glfw.MakeContextCurrent(Window);
         Assign();
-        SwapInterval = 1;
+        SwapInterval = 0;
         glDebugMessageCallback(debugProc = HandleDebug, IntPtr.Zero);
         State.DebugOutput = true;
         Init();
@@ -80,7 +84,6 @@ class GlWindowBase:IDisposable {
     public int Width { get; private set; }
     public int Height { get; private set; }
     public Window Window { get; private set; }
-    public bool Iconified { get; private set; }
 
     protected virtual void Init () { }
     protected virtual void Render (float dt) { }
@@ -88,37 +91,24 @@ class GlWindowBase:IDisposable {
     protected Camera Camera { get; } = new Camera(new());
 
     private readonly Dictionary<Keys, Action<Keys, InputState>> keys = new();
-    private const int _DESIRED_FRAMERATE = 140, _SAMPLES = 256;
-    private static readonly double TIMER_PERIOD = 1.0 / Stopwatch.Frequency;
-    private static readonly long EXPECTED_TICKS_PER_FRAME = Stopwatch.Frequency / _DESIRED_FRAMERATE;
+    private const double _DESIRED_FRAMERATE = 144.0;
+    private static readonly float FRAME_DURATION = (float)(1.0 / _DESIRED_FRAMERATE);
+    private static readonly long EXPECTED_TICKS_PER_FRAME = (long)(Stopwatch.Frequency / _DESIRED_FRAMERATE);
     public ulong FrameCount { get; private set; }
-    private long lastSwapTicks = 0l, lastTicks = 0l;
-    private readonly float[] xcoords = new float[_SAMPLES];
-    private readonly float[] ycoords = new float[_SAMPLES];
-    private VertexArray plotVao;
-    private VertexBuffer<float> plotBuffer;
+    private long lastSwapTicks = 0l;
 
     public void Run () {
         GLFW.Glfw.GetCursorPosition(Window, out var mx, out var my);
         lastMousePosition = new(Convert.ToInt32(mx), Convert.ToInt32(my));
-        for (var i = 0; i < xcoords.Length; ++i)
-            xcoords[i] = i * 2f / _SAMPLES - 1f;
-        for (var i = 0; i < ycoords.Length; ++i)
-            ycoords[i] = (float)Math.Sin(Math.PI * 2 * i / _SAMPLES) + 1f;
-        State.Program = Plot.Id;
-        Plot.Color(new(0f, 1f, 0f, 1f));
-        plotVao = new();
-        plotVao.Assign(new VertexBuffer<float>(xcoords), Plot.X);
-        plotBuffer = new(ycoords);
-        plotVao.Assign(plotBuffer, Plot.Y);
         State.LineSmooth = true;
         State.Dither = false;
+
         Glfw.ShowWindow(Window);
-        OnWindowFocusInternal(IntPtr.Zero, Glfw.GetWindowAttribute(Window, WindowAttribute.Focused));
+        OnWindowFocus(IntPtr.Zero, Glfw.GetWindowAttribute(Window, WindowAttribute.Focused));
 
         while (!Glfw.WindowShouldClose(Window)) {
             if (!Focused) {
-                lastTicks = 0l;
+                lastSwapTicks = 0l;
                 Glfw.WaitEvents();
                 continue;
             }
@@ -127,51 +117,21 @@ class GlWindowBase:IDisposable {
     }
 
     private void Render () {
-        var now = Timer.ElapsedTicks;
-        var dt = lastTicks > 0l ? (float)((now - lastTicks) * TIMER_PERIOD) : 0f;
-        lastTicks = now;
         if (Focused && CursorGrabbed)
-            Camera.Move(10f * dt);
+            Camera.Move(10f * FRAME_DURATION);
 
-        Render(dt);
-        if (plot)
-            RenderPlot();
-        UpdatePlotData();
+        Render(FRAME_DURATION);
         DelayForRetrace();
         Glfw.SwapBuffers(Window);
         lastSwapTicks = Timer.ElapsedTicks;
         ++FrameCount;
     }
 
-    private void RenderPlot () {
-        var (min, max) = Extrema(ycoords);
-        State.DepthTest = false;
-        glViewport(0, 0, _SAMPLES * 2, 200);
-        State.VertexArray = plotVao;
-        plotBuffer.BufferData(ycoords, _SAMPLES, 0, 0);
-        State.Program = Plot.Id;
-        var alpha = 2f / (max - min);
-        Plot.A(alpha);
-        Plot.B(1f - alpha * max);
-        glDrawArrays(Primitive.LineStrip, 0, _SAMPLES);
-    }
-
-    private void UpdatePlotData () {
-        var render = Timer.ElapsedTicks - lastTicks;
-        Array.Copy(ycoords, 1, ycoords, 0, ycoords.Length - 1);
-        ycoords[ycoords.Length - 1] = (float)(render * TIMER_PERIOD);
-    }
-
     private void DelayForRetrace () {
         var delayed = lastSwapTicks + 3 * EXPECTED_TICKS_PER_FRAME / 4;
-
-        if (Timer.ElapsedTicks < delayed)
-            while (Timer.ElapsedTicks < delayed)
-                Glfw.PollEvents();
-        else {
-            SetTitle($"delayed frame {FrameCount}");
+        do
             Glfw.PollEvents();
-        }
+        while (Timer.ElapsedTicks < delayed);
     }
 
     private int swapInterval;
@@ -196,25 +156,22 @@ class GlWindowBase:IDisposable {
             OnCloseInternal(IntPtr.Zero);
     }
 
-    private bool plot;
-    [KeyBinding(Keys.P)]
-    protected void TogglePlot (Keys _, InputState state) {
-        if (state == InputState.Release)
-            plot = !plot;
-    }
-
 #pragma warning disable IDE0052 // Remove unread private members
-    private KeyCallback onKey;
-    private MouseCallback onCursorPosition;
-    private MouseEnterCallback onCursorEnter;
-    private MouseButtonCallback onMouseButton;
     private CharCallback onChar;
+    private CharModsCallback onCharMods;
+    private FileDropCallback onDrop;
+    private FocusCallback onWindowFocus;
+    private IconifyCallback onWindowIconify;
+    private JoystickCallback onJoystick;
+    private KeyCallback onKey;
+    private MonitorCallback onMonitor;
+    private MouseButtonCallback onMouseButton;
+    private MouseCallback onCursorPosition, onScroll;
+    private MouseEnterCallback onCursorEnter;
+    private PositionCallback onWindowPosition;
     private SizeCallback onFramebufferSize, onWindowSize;
     private WindowCallback onWindowRefresh, onClose;
-    private MonitorCallback onMonitor;
-    private IconifyCallback onWindowIconify;
-    private PositionCallback onWindowPosition;
-    private FocusCallback onWindowFocus;
+    private WindowContentsScaleCallback onWindowContentScale;
     private WindowMaximizedCallback onWindowMaximize;
     private readonly DebugProc debugProc;
     [KeyBinding(GLFW.Keys.Tab)]
@@ -224,87 +181,89 @@ class GlWindowBase:IDisposable {
     }
 #pragma warning restore IDE0052 // Remove unread private members
     private void Assign () {
-        onKey = OnKeyInternal;
-        onCursorPosition = OnCursorPositionInternal;
-        onCursorEnter = OnCursorEnterInternal;
-        onMouseButton = OnMouseButtonInternal;
         onChar = OnChar;
-        onFramebufferSize = OnFramebufferSizeInternal;
-        onWindowRefresh = OnWindowRefresh;
-        onMonitor = OnMonitor;
-        onWindowIconify = OnWindowIconifyInternal;
+        onCharMods = OnCharMods;
         onClose = OnCloseInternal;
-        onWindowPosition = OnWindowPosition;
-        onWindowSize = OnWindowSize;
-        onWindowFocus = OnWindowFocusInternal;
+        onCursorEnter = OnCursorEnter;
+        onCursorPosition = OnCursorPosition;
+        onDrop = OnDrop;
+        onFramebufferSize = OnFramebufferSize;
+        onKey = OnKey;
+        onJoystick = OnJoystick;
+        onMonitor = OnMonitor;
+        onMouseButton = OnMouseButton;
+        onScroll = OnScroll;
+        onWindowContentScale = OnWindowContentScale;
+        onWindowFocus = OnWindowFocus;
+        onWindowIconify = OnWindowIconify;
         onWindowMaximize = OnWindowMaximize;
-        _ = Glfw.SetKeyCallback(Window, onKey);
-        _ = Glfw.SetCursorPositionCallback(Window, onCursorPosition);
-        _ = Glfw.SetCursorEnterCallback(Window, onCursorEnter);
-        _ = Glfw.SetMouseButtonCallback(Window, onMouseButton);
+        onWindowPosition = OnWindowPosition;
+        onWindowRefresh = OnWindowRefresh;
+        onWindowSize = OnWindowSize;
         _ = Glfw.SetCharCallback(Window, onChar);
-        _ = Glfw.SetFramebufferSizeCallback(Window, onFramebufferSize);
-        _ = Glfw.SetWindowRefreshCallback(Window, onWindowRefresh);
-        _ = Glfw.SetMonitorCallback(onMonitor);
-        _ = Glfw.SetWindowIconifyCallback(Window, onWindowIconify);
+        _ = Glfw.SetCharModsCallback(Window, onCharMods);
         _ = Glfw.SetCloseCallback(Window, onClose);
-        _ = Glfw.SetWindowPositionCallback(Window, onWindowPosition);
-        _ = Glfw.SetWindowSizeCallback(Window, onWindowSize);
+        _ = Glfw.SetCursorEnterCallback(Window, onCursorEnter);
+        _ = Glfw.SetCursorPositionCallback(Window, onCursorPosition);
+        _ = Glfw.SetDropCallback(Window, onDrop);
+        _ = Glfw.SetFramebufferSizeCallback(Window, onFramebufferSize);
+        _ = Glfw.SetKeyCallback(Window, onKey);
+        _ = Glfw.SetJoystickCallback(onJoystick);
+        _ = Glfw.SetMonitorCallback(onMonitor);
+        _ = Glfw.SetMouseButtonCallback(Window, onMouseButton);
+        _ = Glfw.SetScrollCallback(Window, onScroll);
+        _ = Glfw.SetWindowContentScaleCallback(Window, onWindowContentScale);
         _ = Glfw.SetWindowFocusCallback(Window, onWindowFocus);
+        _ = Glfw.SetWindowIconifyCallback(Window, onWindowIconify);
         _ = Glfw.SetWindowMaximizeCallback(Window, onWindowMaximize);
+        _ = Glfw.SetWindowPositionCallback(Window, onWindowPosition);
+        _ = Glfw.SetWindowRefreshCallback(Window, onWindowRefresh);
+        _ = Glfw.SetWindowSizeCallback(Window, onWindowSize);
     }
 
+    private void OnWindowContentScale (IntPtr _, float xScale, float yScale) {}
+    private void OnScroll (IntPtr _, double x, double y) {}
+    private void OnJoystick (Joystick joystick, ConnectionStatus status) {}
+    private void OnDrop (IntPtr _, int count, IntPtr arrayPtr) {}
+    private void OnCharMods (IntPtr _, uint codePoint, ModifierKeys mods) {}
+    private void OnCursorEnter (IntPtr _, bool entering) {}
+    private void OnWindowIconify (IntPtr _, bool iconified) {}
+    private void OnWindowSize (IntPtr _, int width, int height) {}
+    private void OnWindowRefresh (IntPtr _) {}
+    private void OnMonitor (Monitor monitor, ConnectionStatus status) {}
+    private void OnWindowPosition (IntPtr _, double x, double y) {}
+    private void OnWindowMaximize (IntPtr _, bool maximized) {}
+    private void OnMouseButton (IntPtr _, MouseButton button, InputState state, ModifierKeys modifiers) {}
+    private void OnChar (IntPtr _, uint code) {}
+
     private Vector2i lastMousePosition;
-    protected virtual void OnCursorPosition (Vector2i delta) { }
-    private void OnCursorPositionInternal (IntPtr _, double x, double y) {
+    private void OnCursorPosition (IntPtr _, double x, double y) {
         var delta = new Vector2i(Convert.ToInt32(x), Convert.ToInt32(y));
         var mouseDelta = delta - lastMousePosition;
         if (Focused && CursorGrabbed)
             Camera.Mouse(mouseDelta);
         lastMousePosition = delta;
-        OnCursorPosition(delta);
     }
 
-    protected virtual void OnCursorEnter (bool entering) { }
-    private void OnCursorEnterInternal (IntPtr _, bool entering) => OnCursorEnter(entering);
-
-    protected virtual void OnWindowIconify (bool iconified) { }
-    private void OnWindowIconifyInternal (IntPtr _, bool iconified) {
-        Iconified = iconified;
-        OnWindowIconify(iconified);
-    }
-
-    protected virtual void OnWindowSize (IntPtr _, int width, int height) { }
-    protected virtual void OnWindowRefresh (IntPtr _) { }
-    protected virtual void OnMonitor (Monitor monitor, ConnectionStatus status) { }
-    protected virtual void OnWindowPosition (IntPtr _, double x, double y) { }
-    protected virtual void OnWindowFocus (bool focused) { }
-    private void OnWindowFocusInternal (IntPtr _, bool focused) {
+    private void OnWindowFocus (IntPtr _, bool focused) {
         Focused = focused;
         if (!focused)
             CursorGrabbed = false;
-        OnWindowFocus(focused);
     }
 
-    protected virtual void OnWindowMaximize (IntPtr _, bool maximized) { }
-    protected virtual void OnFramebufferSize (int width, int height) { }
-    private void OnFramebufferSizeInternal (IntPtr _, int width, int height) => OnFramebufferSize(Width = width, Height = height);
+    private void OnFramebufferSize (IntPtr _, int width, int height) {
+        Width = width;
+        Height = height;
+    }
 
-    protected virtual void OnMouseButton (MouseButton button, InputState state, ModifierKeys modifiers) { }
-    private void OnMouseButtonInternal (IntPtr _, MouseButton button, InputState state, ModifierKeys modifiers) => OnMouseButton(button, state, modifiers);
-
-    protected virtual void OnKey (Keys key, int code, InputState state, ModifierKeys modifier) { }
-    private void OnKeyInternal (IntPtr _, Keys key, int code, InputState state, ModifierKeys modifier) {
+    private void OnKey (IntPtr _, Keys key, int code, InputState state, ModifierKeys modifier) {
         if (keys.TryGetValue(key, out var keyAction))
             keyAction(key, state);
-        else
-            OnKey(key, code, state, modifier);
     }
 
     [KeyBinding(Keys.Z, Keys.X, Keys.C, Keys.D, Keys.LeftShift, Keys.LeftControl)]
     protected void CameraKey (Keys key, InputState state) => _ = Camera.Key(key, state);
 
-    protected virtual void OnChar (IntPtr _, uint code) { }
     protected virtual void OnClose () { }
     private void OnCloseInternal (IntPtr _) {
         Glfw.SetWindowShouldClose(Window, true);

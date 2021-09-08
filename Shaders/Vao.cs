@@ -1,70 +1,110 @@
-﻿namespace Shaders {
-    using System.Numerics;
-    using Gl;
-    public abstract class Vao {
-        public VertexArray V { get; } = new();
-        public void Render () {
-            State.VertexArray = V;
-            State.Program = Program;
-            Draw();
-        }
-        protected abstract void Draw ();
-        protected abstract int Program { get; }
-    }
-    public class PlotVAO:Vao {
-        public PlotVAO (VertexBuffer<float> x, VertexBuffer<float> y) : base() {
-            V.Assign(x, Plot.X);
-            V.Assign(y, Plot.Y);
-        }
-        protected override int Program => Plot.Id;
-        private Notifiable<float> a, b;
-        private Notifiable<Vector4> color;
-        public void A (float value) => a.Value = value;
-        public void B (float value) => b.Value = value;
-        public void Color (Vector4 value) => color.Value = value;
-        public void X (VertexBuffer<float> b) => V.Assign(b, Plot.X);
-        public void Y (VertexBuffer<float> b) => V.Assign(b, Plot.Y);
-        protected override void Draw () {
-            State.DepthTest = false;
-            if (a.Changed)
-                Plot.A(a);
-            if (b.Changed)
-                Plot.B(b);
-            if (color.Changed)
-                Plot.Color(color);
-            Calls.glDrawArrays(Primitive.LineStrip, 0, 1);
-        }
-    }
-    public class PassThroughVao:Vao {
-        protected override int Program => PassThrough.Id;
-        private Notifiable<int> tex;
-        public void Tex (int value) => tex.Value = value;
-        public void VertexPosition (VertexBuffer<Vector4> b) => V.Assign(b, PassThrough.VertexPosition);
-        protected override void Draw () {
-            if (tex.Changed)
-                PassThrough.Tex(tex);
-            Calls.glDrawArrays(Primitive.Triangles, 0, 6);
-        }
+﻿namespace Shaders;
+using System.Collections.Generic;
+using System.Numerics;
+using System;
+using Gl;
+public abstract class Vao {
+    public int Id { get; } = Gl.Calls.CreateVertexArrays(1)[0];
+    protected abstract void Draw ();
+    protected abstract int Program { get; }
+    public void Render () {
+        State.VertexArray = Id;
+        State.Program = Program;
+        Draw();
     }
 
-    public class SkyboxVao:Vao {
-        protected override int Program => SkyBox.Id;
-        private Notifiable<Matrix4x4> projection;
-        private Notifiable<Matrix4x4> view;
-        private Notifiable<int> tex;
-        public void Tex (int value) => tex.Value = value;
-        public void VertexPosition (VertexBuffer<Vector4> b) => V.Assign(b, SkyBox.VertexPosition);
-        public void VertexUV (VertexBuffer<Vector2> b) => V.Assign(b, SkyBox.VertexUV);
-        protected override void Draw () {
-            State.VertexArray = V;
-            State.DepthFunc = DepthFunc.LessEqual;
-            if (tex.Changed)
-                SkyBox.Tex(tex);
-            if (projection.Changed)
-                SkyBox.Projection(projection);
-            if (view.Changed)
-                SkyBox.View(view);
-            Calls.glDrawArrays(Primitive.Triangles, 0, 36);
-        }
+    protected static void Assign<T> (int vao, VertexBuffer<T> buffer, int location, int divisor = 0) where T : unmanaged {
+        State.VertexArray = vao;
+        Calls.glBindBuffer(BufferTarget.Array, buffer);
+        var (size, type) = SizeAndTypeOf(typeof(T));
+        if (size > 4)
+            for (var i = 0; i < 4; ++i)
+                Attrib(vao, location + i, 4, type, 16 * sizeof(float), 4 * i * sizeof(float), divisor);
+        else
+            Attrib(vao, location, size, type, 0, 0, divisor);
+    }
+    private static void Attrib (int id, int location, int size, AttribType type, int stride, int offset, int divisor) {
+        Calls.glEnableVertexArrayAttrib(id, location);
+        Calls.glVertexAttribPointer(location, size, type, false, stride, new(offset));
+        Calls.glVertexAttribDivisor(location, divisor);
+    }
+
+    private static (int size, AttribType type) SizeAndTypeOf (Type type) => _TYPES.TryGetValue(type, out var i) ? i : throw new ArgumentException($"unsupported type {type.Name}", nameof(type));
+    private static readonly Dictionary<Type, (int, AttribType)> _TYPES = new() {
+        { typeof(float), (1, AttribType.Float) },
+        { typeof(double), (1, AttribType.Double) },
+        { typeof(int), (1, AttribType.Int) },
+        { typeof(uint), (1, AttribType.UInt) },
+        { typeof(Vector2), (2, AttribType.Float) },
+        { typeof(Vector3), (3, AttribType.Float) },
+        { typeof(Vector4), (4, AttribType.Float) },
+        { typeof(Vector2i), (2, AttribType.Int) },
+        { typeof(Vector3i), (3, AttribType.Int) },
+        { typeof(Matrix4x4), (16, AttribType.Float) },
+    };
+}
+
+public partial class PlotVao:Vao {
+    private static int program;
+    protected override int Program => program;
+
+    private Notifiable<float> a;
+    private Notifiable<float> b;
+    private Notifiable<Vector4> color;
+
+    public void SetA (float value) => a.Value = value;
+    public void SetB (float value) => b.Value = value;
+    public void SetColor (Vector4 value) => color.Value = value;
+    public void AssignX (VertexBuffer<float> b) => Assign(Id, b, Plot.X);
+    public void AssignY (VertexBuffer<float> b) => Assign(Id, b, Plot.Y);
+}
+partial class PlotVao {
+    protected override void Draw () {
+        State.DepthTest = false;
+        if (a.Changed)
+            Plot.A(a);
+        if (b.Changed)
+            Plot.B(b);
+        if (color.Changed)
+            Plot.Color(color);
+        Calls.glDrawArrays(Primitive.LineStrip, 0, 1);
+    }
+}
+public class PassThroughVao:Vao {
+    private static int program;
+    protected override int Program => program;
+
+    private Notifiable<int> tex;
+    public void Tex (int value) => tex.Value = value;
+    public void AssignVertexPosition (VertexBuffer<Vector4> b) => Assign(Id, b, PassThrough.VertexPosition);
+
+    protected override void Draw () {
+        if (tex.Changed)
+            PassThrough.Tex(tex);
+        Calls.glDrawArrays(Primitive.Triangles, 0, 6);
+    }
+}
+
+public class SkyboxVao:Vao {
+    private static int program;
+    protected override int Program => program;
+
+    private Notifiable<Matrix4x4> projection;
+    private Notifiable<Matrix4x4> view;
+    private Notifiable<int> tex;
+
+    public void Tex (int value) => tex.Value = value;
+    public void VertexPosition (VertexBuffer<Vector4> b) => Assign(Id, b, SkyBox.VertexPosition);
+    public void VertexUV (VertexBuffer<Vector2> b) => Assign(Id, b, SkyBox.VertexUV);
+
+    protected override void Draw () {
+        State.DepthFunc = DepthFunc.LessEqual;
+        if (tex.Changed)
+            SkyBox.Tex(tex);
+        if (projection.Changed)
+            SkyBox.Projection(projection);
+        if (view.Changed)
+            SkyBox.View(view);
+        Calls.glDrawArrays(Primitive.Triangles, 0, 36);
     }
 }

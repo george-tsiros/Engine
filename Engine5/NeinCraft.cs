@@ -49,4 +49,7 @@ class NeinCraft:GlWindowBase {
         SkyBox.View(Camera.RotationOnly);
         glDrawArrays(Primitive.Triangles, 0, 36);
     }
+    protected override void OnClose () {
+        skyboxTexture.Dispose();
+    }
 }
