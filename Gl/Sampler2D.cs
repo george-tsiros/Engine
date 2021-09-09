@@ -17,7 +17,7 @@ public class Sampler2D:IDisposable {
     public void BindTo (int t) {
         Debug.Assert(!disposed);
         State.ActiveTexture = t;
-        glBindTexture(Const.TEXTURE_2D, Id);
+        BindTexture(Const.TEXTURE_2D, Id);
     }
     public Wrap Wrap {
         get => wrap;
@@ -43,10 +43,10 @@ public class Sampler2D:IDisposable {
             TextureFilter(Id, mag = value);
         }
     }
-    private Sampler2D () => Id = Create2DTextures(1)[0];
+    private Sampler2D () => Id = CreateTexture2D();
     public Sampler2D (int width, int height, TextureInternalFormat sizedFormat) : this() {
         (Width, Height, SizedFormat) = (width, height, sizedFormat);
-        glTextureStorage2D(Id, 1, SizedFormat, width, height);
+        TextureStorage2D(Id, 1, SizedFormat, width, height);
         TextureBaseLevel(Id, 0);
         TextureMaxLevel(Id, 0);
         Wrap = Wrap.ClampToEdge;
@@ -58,7 +58,7 @@ public class Sampler2D:IDisposable {
 
         var texture = new Sampler2D(raster.Width, raster.Height, SizedFormatWith(raster.Channels));
         fixed (byte* ptr = raster.Pixels)
-            glTextureSubImage2D(texture.Id, 0, 0, 0, raster.Width, raster.Height, FormatWith(raster.Channels), Const.UNSIGNED_BYTE, ptr);
+            TextureSubImage2D(texture.Id, 0, 0, 0, raster.Width, raster.Height, FormatWith(raster.Channels), Const.UNSIGNED_BYTE, ptr);
         return texture;
     }
     private static readonly TextureInternalFormat[] sizedFormats = { TextureInternalFormat.R8, TextureInternalFormat.Rg8, TextureInternalFormat.Rgb8, TextureInternalFormat.Rgba8 };
@@ -69,7 +69,7 @@ public class Sampler2D:IDisposable {
     private void Dispose (bool disposing) {
         if (!disposed) {
             if (disposing)
-                DeleteTextures(new int[] { this });
+                DeleteTexture(this);
             disposed = true;
         }
     }

@@ -58,17 +58,17 @@ class TextureTest:GlWindowBase {
     }
 
     protected override void Render (float dt) {
-        glViewport(0, 0, Width, Height);
-        glClear(BufferBit.Color | BufferBit.Depth);
+        Viewport(0, 0, Width, Height);
+        Clear(BufferBit.Color | BufferBit.Depth);
         State.VertexArray = quad;
         State.Program = SimpleTexture.Id;
         State.DepthTest = true;
-        State.DepthFunc = DepthFunc.Less;
+        State.DepthFunc = DepthFunction.Less;
         State.CullFace = true;
         tex.BindTo(1);
         SimpleTexture.Tex(1);
         SimpleTexture.View(Camera.LookAtMatrix);
-        glDrawArraysInstanced(Primitive.Triangles, 0, 6, 1);
+        DrawArraysInstanced(Primitive.Triangles, 0, 6, 1);
 #if __RENDER_SKYBOX
             State.Program = SkyBox.Id;
             State.VertexArray = skybox;

@@ -6,6 +6,7 @@ using Shaders;
 using System.Numerics;
 using System;
 using System.Diagnostics;
+using GLFW;
 
 class Stats {
     private readonly double[] values;
@@ -35,7 +36,7 @@ class NoiseTest:GlWindowBase {
     public NoiseTest (int w, int h) : base(w, h) { }
     private VertexArray quad;
     private Sampler2D tex;
-    private const int _WIDTH = 320, _HEIGHT = 200;
+    private const int _WIDTH = 160, _HEIGHT = 120;
     private const float _XSCALE = 1000f / _WIDTH, _YSCALE = 1000f / _HEIGHT;
     private readonly byte[] pixels = new byte[_WIDTH * _HEIGHT * 4];
     private const int _THREADCOUNT = 4;
@@ -43,9 +44,33 @@ class NoiseTest:GlWindowBase {
     private FastNoiseLite[] noises;
     private CountdownEvent countdown;
     private Stats stats = new(144);
-    private void TProc (ValueTuple<int, float> datum) {
-        var threadIndex = datum.Item1;
-        var ms = datum.Item2;
+    private bool usePointers;
+    unsafe private void TProcPointers (int threadIndex) {
+        var ms = FrameCount;
+        var start = _ROWS_PER_THREAD * threadIndex;
+        var end = start + _ROWS_PER_THREAD;
+        var offset = 4 * _WIDTH * start;
+        var noise = noises[threadIndex];
+        fixed (byte* p = pixels)
+            for (var y = start; y < end; ++y) {
+                var yscaled = _YSCALE * y;
+                var yscaleddelayed = yscaled + ms;
+                var yscaledshifted = yscaled + _YSCALE * _HEIGHT;
+                for (var x = 0; x < _WIDTH; ++x, offset += 2) {
+                    var xscaled = _XSCALE * x;
+
+                    var blue = noise.GetNoise(xscaled + ms, yscaled);
+                    var green = noise.GetNoise(xscaled + _XSCALE * _WIDTH, yscaleddelayed);
+                    var red = noise.GetNoise(xscaled, yscaledshifted);
+                    p[offset] = (byte)(127.5f * blue + 127.5);
+                    p[++offset] = (byte)(127.5f * green + 127.5);
+                    p[++offset] = (byte)(127.5f * red + 127.5);
+                }
+            }
+        _ = countdown.Signal();
+    }
+    private void TProcArrays (int threadIndex) {
+        var ms = FrameCount;
         var start = _ROWS_PER_THREAD * threadIndex;
         var end = start + _ROWS_PER_THREAD;
         var offset = 4 * _WIDTH * start;
@@ -60,11 +85,6 @@ class NoiseTest:GlWindowBase {
                 var blue = noise.GetNoise(xscaled + ms, yscaled);
                 var green = noise.GetNoise(xscaled + _XSCALE * _WIDTH, yscaleddelayed);
                 var red = noise.GetNoise(xscaled, yscaledshifted);
-#if true
-#else
-                    var l = (byte)(255f * (red + 1f) * (green + 1f) * (blue + 1f) / 8f);
-                    var l = (byte)(255f * (red + green + blue + 3f) / 6f);
-#endif
                 pixels[offset] = (byte)(127.5f * blue + 127.5);
                 pixels[++offset] = (byte)(127.5f * green + 127.5);
                 pixels[++offset] = (byte)(127.5f * red + 127.5);
@@ -72,7 +92,6 @@ class NoiseTest:GlWindowBase {
         }
         _ = countdown.Signal();
     }
-    private Raster font;
     unsafe protected override void Init () {
         quad = new();
         quad.Assign(new VertexBuffer<Vector4>(Geometry.Quad), PassThrough.VertexPosition);
@@ -85,44 +104,45 @@ class NoiseTest:GlWindowBase {
             noises[i].SetNoiseType(noiseType);
         }
         countdown = new(_THREADCOUNT);
-        font = Raster.FromFile("font.raw");
+    }
+    [KeyBinding(Keys.M)]
+    protected void ToggleMethod (Keys _, InputState state) {
+        if (state == InputState.Release)
+            usePointers = !usePointers;
     }
     private FastNoiseLite.NoiseType noiseType;
-    [KeyBinding(GLFW.Keys.N)]
-    protected void CycleNoiseType (GLFW.Keys _, GLFW.InputState state) {
-        if (state == GLFW.InputState.Release) {
+    [KeyBinding(Keys.N)]
+    protected void CycleNoiseType (Keys _, InputState state) {
+        if (state == InputState.Release) {
             noiseType = noiseType == FastNoiseLite.NoiseType.Value ? FastNoiseLite.NoiseType.OpenSimplex2 : noiseType + 1;
             for (var i = 0; i < noises.Length; ++i)
                 noises[i].SetNoiseType(noiseType);
         }
     }
     unsafe protected override void Render (float dt) {
-        var t0 = Timer.ElapsedTicks;
-        var ms = (float)(0.1f * Timer.Elapsed.TotalMilliseconds);
+        var t0 = Ticks;
         if (FrameCount > 0) {
             countdown.Wait();
             countdown.Reset(_THREADCOUNT);
         }
-        stats.Enter((Timer.ElapsedTicks - t0) / (double)Stopwatch.Frequency);
-        if (stats.Index == 0) {
-            var time = Math.Round(1000.0 * stats.GetMean(), 6);
-            Utilities.Trace(time.ToString());
-        }
+        stats.Enter((Ticks - t0) / (double)Stopwatch.Frequency);
+        if (stats.Index == 0)
+            Utilities.Trace(Math.Round(1000.0 * stats.GetMean(), 6).ToString());
 
         fixed (byte* p = pixels)
-            glTextureSubImage2D(tex, 0, 0, 0, tex.Width, tex.Height, Const.BGRA, Const.UNSIGNED_BYTE, p);
+            TextureSubImage2D(tex, 0, 0, 0, tex.Width, tex.Height, Const.BGRA, Const.UNSIGNED_BYTE, p);
         for (var i = 0; i < _THREADCOUNT; ++i) {
-            var ok = ThreadPool.QueueUserWorkItem(TProc, new ValueTuple<int, float>(i, ms), true);
+            var ok = ThreadPool.QueueUserWorkItem(usePointers ? TProcPointers : TProcArrays, i, true);
             if (!ok)
                 throw new ApplicationException();
         }
-        glViewport(0, 0, Width, Height);
-        glClearColor(0f, 0f, 0f, 1f);
-        glClear(BufferBit.Color | BufferBit.Depth);
+        Viewport(0, 0, Width, Height);
+        ClearColor(0f, 0f, 0f, 1f);
+        Clear(BufferBit.Color | BufferBit.Depth);
         State.Program = PassThrough.Id;
         State.VertexArray = quad;
         tex.BindTo(1);
         PassThrough.Tex(1);
-        glDrawArrays(Primitive.Triangles, 0, 6);
+        DrawArrays(Primitive.Triangles, 0, 6);
     }
 }

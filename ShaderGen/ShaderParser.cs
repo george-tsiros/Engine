@@ -5,6 +5,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Gl;
 using static Gl.Calls;
+using static Gl.Utilities;
 class ShaderGen {
     private static bool CreateFrom (string[] args) {
         if (args.Length != 2)
@@ -29,17 +30,17 @@ class ShaderGen {
                 if (File.Exists(fragmentShaderFilepath)) {
                     var vertexShaderSource = File.ReadAllText(vertexShaderFilepath);
                     var fragmentShaderSource = File.ReadAllText(fragmentShaderFilepath);
-                    var program = Utilities.ProgramFromStrings(vertexShaderSource, fragmentShaderSource);
+                    var program = ProgramFromStrings(vertexShaderSource, fragmentShaderSource);
                     using (var f = new StreamWriter(Path.Combine(args[1], shaderName + ".cs")) { })
                         DoProgram(program, shaderName, f);
-                    glDeleteProgram(program);
+                    DeleteProgram(program);
                 }
             }
         }
         catch (TypeInitializationException ex) {
-            Utilities.Trace($"'{ex.Message}' for '{ex.TypeName}'");
+            Trace($"'{ex.Message}' for '{ex.TypeName}'");
             if (ex.InnerException is MarshalDirectiveException inner)
-                Utilities.Trace($"({inner.Message})");
+                Trace($"({inner.Message})");
             return false;
         }
         finally {
@@ -64,37 +65,45 @@ class ShaderGen {
     //static bool IsReserved (string name) => name == "float" || name == "double" || name == "byte" || name == "char";
     private static bool IsPrimitive (string name) => name == "float" || name == "double" || name == "byte" || name == "char";
     private static void DoProgram (int program, string className, StreamWriter f) {
+        Trace($"emitting {className}");
         f.Write($@"namespace Shaders;
 using Gl;
 using System.Numerics;
 public static class {className} {{
 #pragma warning disable CS0649
 ");
-        glGetProgramiv(program, ProgramParameter.ActiveAttributes, out int attrCount);
-        glGetProgramiv(program, ProgramParameter.ActiveAttributeMaxLength, out int maxAttrLength);
+        int attrCount = GetProgram(program, ProgramParameter.ActiveAttributes);
+        Trace($"{attrCount} active attributes");
         for (var i = 0; i < attrCount; ++i) {
-            GetActiveAttrib(program, i, maxAttrLength, out _, out var size, out var type, out var name);
-            if (name.StartsWith("gl_"))
+            var x = GetActiveAttrib(program, i);
+            if (x.name.StartsWith(" gl_")) {
+                Trace($"skipping '{x.name}'");
                 continue;
+            }
+            Trace($"'{x.name}': size {x.size}, type {x.type}");
             f.Write($@"
-    //size {size}, type {type}
-    [GlAttrib(""{name}"")]
-    public static int {UppercaseFirst(name)} {{ get; }}
+    //size {x.size}, type {x.type}
+    [GlAttrib(""{x.name}"")]
+    public static int {UppercaseFirst(x.name)} {{ get; }}
 ");
         }
-        glGetProgramiv(program, ProgramParameter.ActiveUniforms, out int uniformCount);
-        glGetProgramiv(program, ProgramParameter.ActiveUniformMaxLength, out int maxUniformLength);
+
+        int uniformCount = GetProgram(program, ProgramParameter.ActiveUniforms);
+        Trace($"{uniformCount} active uniforms");
         for (var i = 0; i < uniformCount; ++i) {
-            GetActiveUniform(program, i, maxUniformLength, out _, out var size, out var type, out var name);
-            if (name.StartsWith("gl_"))
+            var y = GetActiveUniform(program, i);
+            if (y.name.StartsWith("gl_")) {
+                Trace($"skipping '{y.name}'");
                 continue;
-            var fieldName = IsPrimitive(name) ? "@" + name : name;
-            var rawTypeName = type.ToString();
+            }
+            Trace($"'{y.name}': size {y.size}, type {y.type}");
+            var fieldName = IsPrimitive(y.name) ? "@" + y.name : y.name;
+            var rawTypeName = y.type.ToString();
             f.Write($@"
-    //size {size}, type {type}
-    [GlUniform(""{name}"")]
+    //size {y.size}, type {y.type}
+    [GlUniform(""{y.name}"")]
     private readonly static int {fieldName};
-    public static void {UppercaseFirst(name)} ({UniformTypeToTypeName(type)} v) => Calls.Uniform({fieldName}, v);
+    public static void {UppercaseFirst(y.name)} ({UniformTypeToTypeName(y.type)} v) => Calls.Uniform({fieldName}, v);
 ");
         }
         f.Write($@"
@@ -102,15 +111,16 @@ public static class {className} {{
     static {className} () => ParsedShader.Prepare(typeof({className}));
 #pragma warning restore CS0649
 }}");
+        Trace(dashes);
     }
-
+    private static readonly string dashes = new('-', 100);
     [STAThread]
     public static int Main (string[] args) {
         try {
             return CreateFrom(args) ? 0 : -1;
         }
         catch (Exception ex) {
-            Utilities.Trace(ex.Message);
+            Trace(ex.Message);
             return -1;
         }
     }

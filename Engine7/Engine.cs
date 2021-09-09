@@ -122,9 +122,9 @@ class Engine {
         }
     }
     [STAThread]
- unsafe   static void Main () {
+    unsafe static void Main () {
         if (Glfw.Init()) {
-            _=Glfw.SetErrorCallback((e, m) => throw new ApplicationException(Marshal.PtrToStringAnsi(m) ?? "?"));
+            _ = Glfw.SetErrorCallback((e, m) => throw new ApplicationException(Marshal.PtrToStringAnsi(m) ?? "?"));
 
 
             Glfw.WindowHint(Hint.ContextVersionMajor, 4);

@@ -3,10 +3,8 @@ using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Gl;
-using static Extra;
 using static Gl.Utilities;
-using static Gl.Calls;
-using Shaders;
+//using static Gl.Calls;
 using System.Collections.Generic;
 using System.Reflection;
 using GLFW;
@@ -58,12 +56,12 @@ class GlWindowBase:IDisposable {
             }
     }
 
-    private GlWindowBase (int width, int height, Monitor monitor) : this() {
+    unsafe private GlWindowBase (int width, int height, Monitor monitor) : this() {
         Window = Glfw.CreateWindow(Width = width, Height = height, GetType().Name, monitor, Window.None);
         Glfw.MakeContextCurrent(Window);
         Assign();
-        SwapInterval = 0;
-        glDebugMessageCallback(debugProc = HandleDebug, IntPtr.Zero);
+        SwapInterval = 1;
+        Calls.DebugMessageCallback(debugProc = HandleDebug, IntPtr.Zero);
         State.DebugOutput = true;
         Init();
         BindKeys();
@@ -87,7 +85,8 @@ class GlWindowBase:IDisposable {
 
     protected virtual void Init () { }
     protected virtual void Render (float dt) { }
-    protected Stopwatch Timer { get; } = Stopwatch.StartNew();
+    private static readonly long startTicks = Stopwatch.GetTimestamp();
+    protected static long Ticks => Stopwatch.GetTimestamp() - startTicks;
     protected Camera Camera { get; } = new Camera(new());
 
     private readonly Dictionary<Keys, Action<Keys, InputState>> keys = new();
@@ -98,7 +97,7 @@ class GlWindowBase:IDisposable {
     private long lastSwapTicks = 0l;
 
     public void Run () {
-        GLFW.Glfw.GetCursorPosition(Window, out var mx, out var my);
+        Glfw.GetCursorPosition(Window, out var mx, out var my);
         lastMousePosition = new(Convert.ToInt32(mx), Convert.ToInt32(my));
         State.LineSmooth = true;
         State.Dither = false;
@@ -123,7 +122,7 @@ class GlWindowBase:IDisposable {
         Render(FRAME_DURATION);
         DelayForRetrace();
         Glfw.SwapBuffers(Window);
-        lastSwapTicks = Timer.ElapsedTicks;
+        lastSwapTicks = Ticks;
         ++FrameCount;
     }
 
@@ -131,7 +130,7 @@ class GlWindowBase:IDisposable {
         var delayed = lastSwapTicks + 3 * EXPECTED_TICKS_PER_FRAME / 4;
         do
             Glfw.PollEvents();
-        while (Timer.ElapsedTicks < delayed);
+        while (Ticks < delayed);
     }
 
     private int swapInterval;
@@ -174,7 +173,7 @@ class GlWindowBase:IDisposable {
     private WindowContentsScaleCallback onWindowContentScale;
     private WindowMaximizedCallback onWindowMaximize;
     private readonly DebugProc debugProc;
-    [KeyBinding(GLFW.Keys.Tab)]
+    [KeyBinding(Keys.Tab)]
     protected void ToggleCursorGrabbed (Keys _, InputState state) {
         if (state == InputState.Release)
             CursorGrabbed = !CursorGrabbed;
@@ -221,20 +220,20 @@ class GlWindowBase:IDisposable {
         _ = Glfw.SetWindowSizeCallback(Window, onWindowSize);
     }
 
-    private void OnWindowContentScale (IntPtr _, float xScale, float yScale) {}
-    private void OnScroll (IntPtr _, double x, double y) {}
-    private void OnJoystick (Joystick joystick, ConnectionStatus status) {}
-    private void OnDrop (IntPtr _, int count, IntPtr arrayPtr) {}
-    private void OnCharMods (IntPtr _, uint codePoint, ModifierKeys mods) {}
-    private void OnCursorEnter (IntPtr _, bool entering) {}
-    private void OnWindowIconify (IntPtr _, bool iconified) {}
-    private void OnWindowSize (IntPtr _, int width, int height) {}
-    private void OnWindowRefresh (IntPtr _) {}
-    private void OnMonitor (Monitor monitor, ConnectionStatus status) {}
-    private void OnWindowPosition (IntPtr _, double x, double y) {}
-    private void OnWindowMaximize (IntPtr _, bool maximized) {}
-    private void OnMouseButton (IntPtr _, MouseButton button, InputState state, ModifierKeys modifiers) {}
-    private void OnChar (IntPtr _, uint code) {}
+    private void OnWindowContentScale (IntPtr _, float xScale, float yScale) { }
+    private void OnScroll (IntPtr _, double x, double y) { }
+    private void OnJoystick (Joystick joystick, ConnectionStatus status) { }
+    private void OnDrop (IntPtr _, int count, IntPtr arrayPtr) { }
+    private void OnCharMods (IntPtr _, uint codePoint, ModifierKeys mods) { }
+    private void OnCursorEnter (IntPtr _, bool entering) { }
+    private void OnWindowIconify (IntPtr _, bool iconified) { }
+    private void OnWindowSize (IntPtr _, int width, int height) { }
+    private void OnWindowRefresh (IntPtr _) { }
+    private void OnMonitor (Monitor monitor, ConnectionStatus status) { }
+    private void OnWindowPosition (IntPtr _, double x, double y) { }
+    private void OnWindowMaximize (IntPtr _, bool maximized) { }
+    private void OnMouseButton (IntPtr _, MouseButton button, InputState state, ModifierKeys modifiers) { }
+    private void OnChar (IntPtr _, uint code) { }
 
     private Vector2i lastMousePosition;
     private void OnCursorPosition (IntPtr _, double x, double y) {
@@ -270,7 +269,9 @@ class GlWindowBase:IDisposable {
         OnClose();
     }
     private const string _DEBSTR = "source: {0}\ntype: {1}\nseverity: {2}\nmessage: {3}";
-    private void HandleDebug (int source, int type, int id, int severity, int length, string message, IntPtr _) => throw new ApplicationException(string.Format(_DEBSTR, source, type, severity, message));
+    unsafe private void HandleDebug (int source, int type, int id, int severity, int length, byte* message, void* _) {
+        throw new ApplicationException(string.Format(_DEBSTR, source, type, severity, Marshal.PtrToStringAnsi(new(message)) ?? "?"));
+    }
 
     public void Dispose () => Dispose(true);
 

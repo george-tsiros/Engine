@@ -97,7 +97,7 @@
     </ItemGroup>
 
     <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-        <Exec Command="C:\projects\source\Engine\ShaderGen\bin\net5.0\ShaderGen.exe $(ProjectDir)shadersources\ $(ProjectDir)" />
+        <Exec Command="C:\projects\source\Engine\ShaderGen\bin\net6.0\ShaderGen.exe $(ProjectDir)shadersources\ $(ProjectDir)" />
     </Target>
 
 </Project>

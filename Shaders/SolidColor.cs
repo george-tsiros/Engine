@@ -4,7 +4,7 @@ using System.Numerics;
 public static class SolidColor {
 #pragma warning disable CS0649
 
-    //size 1, type Vector4
+    //size 1, type 35666
     [GlAttrib("vertexPosition")]
     public static int VertexPosition { get; }
 

@@ -20,10 +20,10 @@ public readonly struct Vector3i {
 
 [StructLayout(LayoutKind.Sequential)]
 public struct ArraysCommand {
-    public uint VerticesCount, InstancesCount, FirstVertexIndex, BaseInstanceIndex;
+    public int VerticesCount, InstancesCount, FirstVertexIndex, BaseInstanceIndex;
 }
 
 [StructLayout(LayoutKind.Sequential)]
 public struct ElementsCommand {
-    public uint VerticesCount, InstancesCount, FirstVertexIndex, BaseVertexIndex, BaseInstanceIndex;
+    public int VerticesCount, InstancesCount, FirstVertexIndex, BaseVertexIndex, BaseInstanceIndex;
 }

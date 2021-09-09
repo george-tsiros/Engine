@@ -4,7 +4,7 @@ using System.Numerics;
 using System;
 using Gl;
 public abstract class Vao {
-    public int Id { get; } = Gl.Calls.CreateVertexArrays(1)[0];
+    public int Id { get; } = Gl.Calls.CreateVertexArray();
     protected abstract void Draw ();
     protected abstract int Program { get; }
     public void Render () {
@@ -15,7 +15,7 @@ public abstract class Vao {
 
     protected static void Assign<T> (int vao, VertexBuffer<T> buffer, int location, int divisor = 0) where T : unmanaged {
         State.VertexArray = vao;
-        Calls.glBindBuffer(BufferTarget.Array, buffer);
+        Calls.BindBuffer(BufferTarget.Array, buffer);
         var (size, type) = SizeAndTypeOf(typeof(T));
         if (size > 4)
             for (var i = 0; i < 4; ++i)
@@ -24,9 +24,9 @@ public abstract class Vao {
             Attrib(vao, location, size, type, 0, 0, divisor);
     }
     private static void Attrib (int id, int location, int size, AttribType type, int stride, int offset, int divisor) {
-        Calls.glEnableVertexArrayAttrib(id, location);
-        Calls.glVertexAttribPointer(location, size, type, false, stride, new(offset));
-        Calls.glVertexAttribDivisor(location, divisor);
+        Calls.EnableVertexArrayAttrib(id, location);
+        Calls.VertexAttribPointer(location, size, type, false, stride, offset);
+        Calls.VertexAttribDivisor(location, divisor);
     }
 
     private static (int size, AttribType type) SizeAndTypeOf (Type type) => _TYPES.TryGetValue(type, out var i) ? i : throw new ArgumentException($"unsupported type {type.Name}", nameof(type));
@@ -67,7 +67,7 @@ partial class PlotVao {
             Plot.B(b);
         if (color.Changed)
             Plot.Color(color);
-        Calls.glDrawArrays(Primitive.LineStrip, 0, 1);
+        Calls.DrawArrays(Primitive.LineStrip, 0, 1);
     }
 }
 public class PassThroughVao:Vao {
@@ -81,7 +81,7 @@ public class PassThroughVao:Vao {
     protected override void Draw () {
         if (tex.Changed)
             PassThrough.Tex(tex);
-        Calls.glDrawArrays(Primitive.Triangles, 0, 6);
+        Calls.DrawArrays(Primitive.Triangles, 0, 6);
     }
 }
 
@@ -98,13 +98,14 @@ public class SkyboxVao:Vao {
     public void VertexUV (VertexBuffer<Vector2> b) => Assign(Id, b, SkyBox.VertexUV);
 
     protected override void Draw () {
-        State.DepthFunc = DepthFunc.LessEqual;
+        State.DepthFunc = DepthFunction.LessEqual;
+        State.DepthTest = true;
         if (tex.Changed)
             SkyBox.Tex(tex);
         if (projection.Changed)
             SkyBox.Projection(projection);
         if (view.Changed)
             SkyBox.View(view);
-        Calls.glDrawArrays(Primitive.Triangles, 0, 36);
+        Calls.DrawArrays(Primitive.Triangles, 0, 36);
     }
 }

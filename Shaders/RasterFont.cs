@@ -4,15 +4,19 @@ using System.Numerics;
 public static class RasterFont {
 #pragma warning disable CS0649
 
-    //size 1, type Vector2
+    //size 1, type 35664
     [GlAttrib("char")]
     public static int Char { get; }
 
-    //size 1, type Vector2
+    //size 1, type Int
+    [GlAttrib("gl_InstanceID")]
+    public static int Gl_InstanceID { get; }
+
+    //size 1, type 35664
     [GlAttrib("offset")]
     public static int Offset { get; }
 
-    //size 1, type Vector2
+    //size 1, type 35664
     [GlAttrib("vertex")]
     public static int Vertex { get; }
 

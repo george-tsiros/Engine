@@ -60,8 +60,6 @@ public enum TextureInternalFormat {
     Rgba16 = Const.RGBA16,
 }
 
-public enum VariableKind { Uniform, Attrib }
-
 public enum Primitive {
     Points = Const.POINTS,
     LineStrip = Const.LINE_STRIP,
@@ -198,7 +196,7 @@ public enum Capability {
     StencilTest = Const.STENCIL_TEST,
 }
 
-public enum DepthFunc {
+public enum DepthFunction {
     Never = Const.NEVER,
     Less = Const.LESS,
     Equal = Const.EQUAL,
@@ -318,8 +316,6 @@ public enum ProgramParameter {
     ActiveAttributes = Const.ACTIVE_ATTRIBUTES,
     ActiveAttributeMaxLength = Const.ACTIVE_ATTRIBUTE_MAX_LENGTH,
     ActiveUniforms = Const.ACTIVE_UNIFORMS,
-    ActiveUniformBlocks = Const.ACTIVE_UNIFORM_BLOCKS,
-    ActiveUniformBlockMaxNameLength = Const.ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH,
     ActiveUniformMaxLength = Const.ACTIVE_UNIFORM_MAX_LENGTH,
     TransformFeedbackBufferMode = Const.TRANSFORM_FEEDBACK_BUFFER_MODE,
     TransformFeedbackVaryings = Const.TRANSFORM_FEEDBACK_VARYINGS,
@@ -354,4 +350,19 @@ public enum RenderbufferFormat {
     Rg16 = Const.RG16,
     Rgb16 = Const.RGB16,
     Rgba16 = Const.RGBA16,
+}
+
+public enum ShaderType {
+    Fragment = Const.FRAGMENT_SHADER,
+    Vertex = Const.VERTEX_SHADER,
+
+}
+
+public enum IntParameter {
+    FramebufferBinding = Const.FRAMEBUFFER_BINDING,
+    DepthFunc = Const.DEPTH_FUNC,
+    CurrentProgram = Const.CURRENT_PROGRAM,
+    ArrayBufferBinding = Const.ARRAY_BUFFER_BINDING,
+    VertexArrayBinding = Const.VERTEX_ARRAY_BINDING,
+    ActiveTexture = Const.ACTIVE_TEXTURE,
 }

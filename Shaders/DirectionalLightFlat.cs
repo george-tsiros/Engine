@@ -4,11 +4,11 @@ using System.Numerics;
 public static class DirectionalLightFlat {
 #pragma warning disable CS0649
 
-    //size 1, type Vector4
+    //size 1, type 35666
     [GlAttrib("normal")]
     public static int Normal { get; }
 
-    //size 1, type Vector4
+    //size 1, type 35666
     [GlAttrib("vertex")]
     public static int Vertex { get; }
 

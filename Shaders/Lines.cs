@@ -4,7 +4,7 @@ using System.Numerics;
 public static class Lines {
 #pragma warning disable CS0649
 
-    //size 1, type Vector2
+    //size 1, type 35664
     [GlAttrib("coords")]
     public static int Coords { get; }
 

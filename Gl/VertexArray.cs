@@ -13,12 +13,12 @@ public class NotString {
 public class VertexArray {
     public static readonly NotString aaaaaaaa = (NotString)"asdgf";
     public static implicit operator int (VertexArray b) => b.Id;
-    public int Id { get; } = CreateVertexArrays(1)[0];
+    public int Id { get; } = CreateVertexArray();
     public void Assign<T> (VertexBuffer<T> buffer, int location, int divisor = 0) where T : unmanaged => Assign(this, buffer, location, divisor);
 
     private static void Assign<T> (int vao, VertexBuffer<T> buffer, int location, int divisor = 0) where T : unmanaged {
         State.VertexArray = vao;
-        glBindBuffer(BufferTarget.Array, buffer);
+        BindBuffer(BufferTarget.Array, buffer);
         Attrib<T>(vao, location, divisor);
     }
     private static void Attrib<T> (int vao, int location, int divisor) where T : unmanaged {
@@ -31,9 +31,9 @@ public class VertexArray {
     }
 
     private static void Attrib (int id, int location, int size, AttribType type, int stride, int offset, int divisor) {
-        glEnableVertexArrayAttrib(id, location);
-        glVertexAttribPointer(location, size, type, false, stride, new(offset));
-        glVertexAttribDivisor(location, divisor);
+        EnableVertexArrayAttrib(id, location);
+        VertexAttribPointer(location, size, type, false, stride, offset);
+        VertexAttribDivisor(location, divisor);
     }
 
     private static (int size, AttribType type) SizeAndTypeOf (Type type) => _TYPES.TryGetValue(type, out var i) ? i : throw new ArgumentException($"unsupported type {type.Name}", nameof(type));

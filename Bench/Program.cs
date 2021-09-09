@@ -2,10 +2,9 @@
 using Engine;
 using System;
 using System.Diagnostics;
-
 class Program {
     static void Main () {
-        using var f = new FancyStream("test.bin");
+        using var f = FancyStream.WriteTo("test.bin");
         Bench(f);
         _ = Console.ReadLine();
     }
