@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System;
 using System.IO;
 using System.Text;
-using System.Reflection;
 
 public enum DataType:byte {
     Null = 0,
@@ -21,6 +20,27 @@ public enum DataType:byte {
     Object,
     Array,
 }
+public enum Msg {
+    Char,
+    CharMods,
+    Close,
+    CursorEnter,
+    CursorPosition,
+    Drop,
+    FramebufferSize,
+    Key,
+    Joystick,
+    Monitor,
+    MouseButton,
+    Scroll,
+    WindowContentScale,
+    WindowFocus,
+    WindowIconify,
+    WindowMaximize,
+    WindowPosition,
+    WindowRefresh,
+    WindowSize,
+}
 
 public class FancyStream:IDisposable {
     private Stream Stream { get; init; }
@@ -28,11 +48,6 @@ public class FancyStream:IDisposable {
     private FancyStream () { }
 
     public static FancyStream WriteTo (string filepath) => new() { Stream = File.Create(filepath), Mode = FileMode.Create };
-
-    public void Write<T> (T ob) where T: struct {
-        throw new NotImplementedException();
-        var fields = typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance);
-    }
 
     public void Write (byte b) {
         Debug.Assert(Mode == FileMode.Create);
@@ -104,6 +119,8 @@ public class FancyStream:IDisposable {
         Debug.Assert(s.Length <= byte.MaxValue);
         var expected = (byte)s.Length;
         Stream.WriteByte(expected);
+        if (s.Length == 0)
+            return;
         Span<byte> bytes = stackalloc byte[expected];
         var actual = Encoding.ASCII.GetBytes(s, bytes);
         Debug.Assert(actual == expected);

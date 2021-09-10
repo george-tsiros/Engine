@@ -17,46 +17,11 @@ class GlWindowBase:IDisposable {
         if (HANDLE_ERROR is null)
             _ = Glfw.SetErrorCallback(HANDLE_ERROR = HandleError);
     }
+
     private static readonly ErrorCallback HANDLE_ERROR;
     private static void HandleError (ErrorCode code, IntPtr message) => throw new ApplicationException(Marshal.PtrToStringAnsi(message) ?? "?");
 
-    private GlWindowBase () {
-        if (File.Exists("hints.txt"))
-            SetHintsFrom("hints.txt");
-    }
-    private static FieldInfo GetEnumFieldInfo (Assembly a, string s) {
-        var parts = s.Split('.');
-        if (parts.Length != 2)
-            return null;
-        const BindingFlags publicStaticIgnoreCase = BindingFlags.Public | BindingFlags.Static | BindingFlags.IgnoreCase;
-        return a.GetType($"GLFW.{parts[0]}", false, true)?.GetField(parts[1], publicStaticIgnoreCase);
-    }
-    private static bool TryGetHintValue (string hintValue, out int value) {
-        if (bool.TryParse(hintValue, out var b)) {
-            value = b ? 1 : 0;
-            return true;
-        }
-        if (int.TryParse(hintValue, out value))
-            return true;
-        if (GetEnumFieldInfo(typeof(Glfw).Assembly, hintValue) is FieldInfo fi) {
-            value = (int)fi.GetValue(null);
-            return true;
-        }
-        value = 0;
-        return false;
-    }
-    private static void SetHintsFrom (string filepath) {
-        var hintRegex = new Regex(@"^ *(\w+) *= *(true|false|\d+|(\w+)\.(\w+)) *$");
-        foreach (var line in File.ReadAllLines(filepath))
-            if (hintRegex.TryMatch(line, out var m) && Enum.TryParse<Hint>(m.Groups[1].Value, true, out var hint)) {
-                if (TryGetHintValue(m.Groups[2].Value, out var i))
-                    Glfw.WindowHint(hint, i);
-                else
-                    throw new ApplicationException($"could not get an int out of '{m.Groups[2].Value}' for {hint}");
-            }
-    }
-
-    unsafe private GlWindowBase (int width, int height, Monitor monitor) : this() {
+    unsafe private GlWindowBase (int width, int height, Monitor monitor) {
         Window = Glfw.CreateWindow(Width = width, Height = height, GetType().Name, monitor, Window.None);
         Glfw.MakeContextCurrent(Window);
         Assign();
@@ -95,7 +60,7 @@ class GlWindowBase:IDisposable {
     private static readonly long EXPECTED_TICKS_PER_FRAME = (long)(Stopwatch.Frequency / _DESIRED_FRAMERATE);
     public ulong FrameCount { get; private set; }
     private long lastSwapTicks = 0l;
-
+    protected StreamWriter Log { get; } = new("log.txt", false, System.Text.Encoding.ASCII); // MOVE TO SEP. THREAD
     public void Run () {
         Glfw.GetCursorPosition(Window, out var mx, out var my);
         lastMousePosition = new(Convert.ToInt32(mx), Convert.ToInt32(my));
@@ -116,17 +81,32 @@ class GlWindowBase:IDisposable {
     }
 
     private void Render () {
+        Stamp("start");
         if (Focused && CursorGrabbed)
             Camera.Move(10f * FRAME_DURATION);
 
         Render(FRAME_DURATION);
         DelayForRetrace();
+        Stamp(nameof(Glfw.SwapBuffers));
         Glfw.SwapBuffers(Window);
+        Stamp("end");
         lastSwapTicks = Ticks;
         ++FrameCount;
     }
-
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void Stamp () {
+        Log.Write(Ticks);
+        Log.Write(' ');
+        Log.WriteLine(new StackFrame(1).GetMethod().Name);
+    }
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void Stamp (string m) {
+        Log.Write(Ticks);
+        Log.Write(' ');
+        Log.WriteLine(m);
+    }
     private void DelayForRetrace () {
+        Stamp();
         var delayed = lastSwapTicks + 3 * EXPECTED_TICKS_PER_FRAME / 4;
         do
             Glfw.PollEvents();
@@ -220,23 +200,24 @@ class GlWindowBase:IDisposable {
         _ = Glfw.SetWindowSizeCallback(Window, onWindowSize);
     }
 
-    private void OnWindowContentScale (IntPtr _, float xScale, float yScale) { }
-    private void OnScroll (IntPtr _, double x, double y) { }
-    private void OnJoystick (Joystick joystick, ConnectionStatus status) { }
-    private void OnDrop (IntPtr _, int count, IntPtr arrayPtr) { }
-    private void OnCharMods (IntPtr _, uint codePoint, ModifierKeys mods) { }
-    private void OnCursorEnter (IntPtr _, bool entering) { }
-    private void OnWindowIconify (IntPtr _, bool iconified) { }
-    private void OnWindowSize (IntPtr _, int width, int height) { }
-    private void OnWindowRefresh (IntPtr _) { }
-    private void OnMonitor (Monitor monitor, ConnectionStatus status) { }
-    private void OnWindowPosition (IntPtr _, double x, double y) { }
-    private void OnWindowMaximize (IntPtr _, bool maximized) { }
-    private void OnMouseButton (IntPtr _, MouseButton button, InputState state, ModifierKeys modifiers) { }
-    private void OnChar (IntPtr _, uint code) { }
+    private void OnWindowContentScale (IntPtr _, float xScale, float yScale) => Stamp();
+    private void OnScroll (IntPtr _, double x, double y) => Stamp();
+    private void OnJoystick (Joystick joystick, ConnectionStatus status) => Stamp();
+    private void OnDrop (IntPtr _, int count, IntPtr arrayPtr) => Stamp();
+    private void OnCharMods (IntPtr _, uint codePoint, ModifierKeys mods) => Stamp();
+    private void OnCursorEnter (IntPtr _, bool entering) => Stamp();
+    private void OnWindowIconify (IntPtr _, bool iconified) => Stamp();
+    private void OnWindowSize (IntPtr _, int width, int height) => Stamp();
+    private void OnWindowRefresh (IntPtr _) => Stamp();
+    private void OnMonitor (Monitor monitor, ConnectionStatus status) => Stamp();
+    private void OnWindowPosition (IntPtr _, double x, double y) => Stamp();
+    private void OnWindowMaximize (IntPtr _, bool maximized) => Stamp();
+    private void OnMouseButton (IntPtr _, MouseButton button, InputState state, ModifierKeys modifiers) => Stamp();
+    private void OnChar (IntPtr _, uint code) => Stamp();
 
     private Vector2i lastMousePosition;
     private void OnCursorPosition (IntPtr _, double x, double y) {
+        Stamp();
         var delta = new Vector2i(Convert.ToInt32(x), Convert.ToInt32(y));
         var mouseDelta = delta - lastMousePosition;
         if (Focused && CursorGrabbed)
@@ -245,17 +226,20 @@ class GlWindowBase:IDisposable {
     }
 
     private void OnWindowFocus (IntPtr _, bool focused) {
+        Stamp();
         Focused = focused;
         if (!focused)
             CursorGrabbed = false;
     }
 
     private void OnFramebufferSize (IntPtr _, int width, int height) {
+        Stamp();
         Width = width;
         Height = height;
     }
 
     private void OnKey (IntPtr _, Keys key, int code, InputState state, ModifierKeys modifier) {
+        Stamp();
         if (keys.TryGetValue(key, out var keyAction))
             keyAction(key, state);
     }
@@ -281,6 +265,7 @@ class GlWindowBase:IDisposable {
             if (disposing) {
                 Glfw.DestroyWindow(Window);
                 Window = Window.None;
+                Log.Dispose();
             }
             disposed = true;
         }

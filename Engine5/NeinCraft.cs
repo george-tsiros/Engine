@@ -15,7 +15,7 @@ class NeinCraft:GlWindowBase {
     private VertexArray skyboxVao;
     private Sampler2D skyboxTexture;
 #pragma warning disable IDE0051
-    [KeyBinding(GLFW.Keys.Pause)]
+    [KeyBinding(Keys.Pause)]
     private void PauseResume (Keys _, InputState state) {
         if (state == InputState.Release)
             isRunning = !isRunning;
