@@ -1,11 +1,40 @@
 namespace Engine;
 
 using System;
+using System.Reflection;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Diagnostics;
 using System.Numerics;
-public static class Extra {
+using System.Text.RegularExpressions;
+
+static class Extra {
+
+    private static bool TryGetHintValue (string hintValue, out int value) {
+        if (bool.TryParse(hintValue, out var b)) {
+            value = b ? 1 : 0;
+            return true;
+        }
+        if (int.TryParse(hintValue, out value))
+            return true;
+        if (typeof(GLFW.Glfw).Assembly.GetEnumFieldInfo(hintValue) is FieldInfo fi) {
+            value = (int)fi.GetValue(null);
+            return true;
+        }
+        value = 0;
+        return false;
+    }
+
+    internal static void SetHintsFrom (string filepath) {
+        var hintRegex = new Regex(@"^ *(\w+) *= *(true|false|\d+|(\w+)\.(\w+)) *$");
+        foreach (var line in File.ReadAllLines(filepath))
+            if (hintRegex.TryMatch(line, out var m) && Enum.TryParse<GLFW.Hint>(m.Groups[1].Value, true, out var hint)) {
+                if (TryGetHintValue(m.Groups[2].Value, out var i))
+                    GLFW.Glfw.WindowHint(hint, i);
+                else
+                    throw new ApplicationException($"could not get an int out of '{m.Groups[2].Value}' for {hint}");
+            }
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static void PushAscii (Span<byte> a, ref long int64, ref int offset) {
@@ -13,7 +42,7 @@ public static class Extra {
         a[--offset] = (byte)(d + '0');
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static int ToChars (long int64, Span<byte> bytes) {
+    internal static int ToChars (long int64, Span<byte> bytes) {
         var isNegative = int64 < 0l;
         if (isNegative)
             int64 = -int64;
@@ -27,9 +56,9 @@ public static class Extra {
     }
 
 
-    public static Vector2 ByteToVector (byte b) => new(b & 0xf, b >> 4);
+    internal static Vector2 ByteToVector (byte b) => new(b & 0xf, b >> 4);
 
-    public static float ModuloTwoPi (ref float angle, float delta) {
+    internal static float ModuloTwoPi (ref float angle, float delta) {
         angle += delta;
         while (angle < 0)
             angle += 2 * (float)Math.PI;
@@ -37,7 +66,7 @@ public static class Extra {
             angle -= 2 * (float)Math.PI;
         return angle;
     }
-    public static double ModuloTwoPi (ref double angle, double delta) {
+    internal static double ModuloTwoPi (ref double angle, double delta) {
         angle += delta;
         while (angle < 0)
             angle += 2 * Math.PI;
@@ -45,10 +74,10 @@ public static class Extra {
             angle -= 2 * Math.PI;
         return angle;
     }
-    public static float Clamp (ref float angle, float delta, float min, float max) => angle = (float)Math.Max(min, Math.Min(angle + delta, max));
-    public static double Clamp (ref double angle, double delta, double min, double max) => angle = Math.Max(min, Math.Min(angle + delta, max));
+    internal static float Clamp (ref float angle, float delta, float min, float max) => angle = (float)Math.Max(min, Math.Min(angle + delta, max));
+    internal static double Clamp (ref double angle, double delta, double min, double max) => angle = Math.Max(min, Math.Min(angle + delta, max));
 
-    public static (float min, float max) Extrema (float[] ycoords) {
+    internal static (float min, float max) Extrema (float[] ycoords) {
 #if !true
             var min = new Vector<float>(float.MaxValue);
             var max = new Vector<float>(float.MinValue);
@@ -76,25 +105,25 @@ public static class Extra {
             max = l;
     }
 
-    public static T[] Dex<T> (T[] array, int[] indices) where T : struct {
+    internal static T[] Dex<T> (T[] array, int[] indices) where T : struct {
         T[] b = new T[indices.Length];
         Dex(array, indices, b);
         return b;
     }
-    public static void Dex<T> (T[] vertices, int[] indices, T[] dex) where T : struct {
+    internal static void Dex<T> (T[] vertices, int[] indices, T[] dex) where T : struct {
         Debug.Assert(dex.Length == indices.Length);
         for (var i = 0; i < indices.Length; ++i)
             dex[i] = vertices[indices[i]];
     }
-    public static Vector4[] ScaleInPlace (Vector4[] v, Vector4 s) {
+    internal static Vector4[] ScaleInPlace (Vector4[] v, Vector4 s) {
         for (var i = 0; i < v.Length; ++i)
             v[i] *= s;
         return v;
     }
-    public static Vector4[] ScaleInPlace (Vector4[] v, float f) => ScaleInPlace(v, new Vector4(f, f, f, 1));
-    public static Vector4[] ScaleInPlace (Vector4[] v, Vector3 f) => ScaleInPlace(v, new Vector4(f, 1));
+    internal static Vector4[] ScaleInPlace (Vector4[] v, float f) => ScaleInPlace(v, new Vector4(f, f, f, 1));
+    internal static Vector4[] ScaleInPlace (Vector4[] v, Vector3 f) => ScaleInPlace(v, new Vector4(f, 1));
 
-    public static Vector4[] TranslateInPlace (Vector4[] v, Vector3 d) {
+    internal static Vector4[] TranslateInPlace (Vector4[] v, Vector3 d) {
         var t = new Vector4(d, 0);
         for (var i = 0; i < v.Length; ++i)
             v[i] += t;

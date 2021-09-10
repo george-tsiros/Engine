@@ -1,6 +1,6 @@
 ﻿Resizable=false
 TransparentFramebuffer=false
-Decorated=true
+Decorated=false
 FocusOnShow=true
 OpenglDebugContext=true
 OpenglForwardCompatible=true

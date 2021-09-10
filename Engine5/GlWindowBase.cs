@@ -4,22 +4,11 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Gl;
 using static Gl.Utilities;
-//using static Gl.Calls;
 using System.Collections.Generic;
 using System.Reflection;
 using GLFW;
-using System.IO;
-using System.Text.RegularExpressions;
 
 class GlWindowBase:IDisposable {
-
-    static GlWindowBase () {
-        if (HANDLE_ERROR is null)
-            _ = Glfw.SetErrorCallback(HANDLE_ERROR = HandleError);
-    }
-
-    private static readonly ErrorCallback HANDLE_ERROR;
-    private static void HandleError (ErrorCode code, IntPtr message) => throw new ApplicationException(Marshal.PtrToStringAnsi(message) ?? "?");
 
     unsafe private GlWindowBase (int width, int height, Monitor monitor) {
         Window = Glfw.CreateWindow(Width = width, Height = height, GetType().Name, monitor, Window.None);
@@ -51,16 +40,27 @@ class GlWindowBase:IDisposable {
     protected virtual void Init () { }
     protected virtual void Render (float dt) { }
     private static readonly long startTicks = Stopwatch.GetTimestamp();
-    protected static long Ticks => Stopwatch.GetTimestamp() - startTicks;
+
+#if !DEBUG
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+#endif
+    protected static long GetTicks () => Stopwatch.GetTimestamp() - startTicks;
+
     protected Camera Camera { get; } = new Camera(new());
 
     private readonly Dictionary<Keys, Action<Keys, InputState>> keys = new();
-    private const double _DESIRED_FRAMERATE = 144.0;
-    private static readonly float FRAME_DURATION = (float)(1.0 / _DESIRED_FRAMERATE);
+    private const float _DESIRED_FRAMERATE = 100.0f;
+    private static readonly float FRAME_DURATION = 1.0f / _DESIRED_FRAMERATE;
     private static readonly long EXPECTED_TICKS_PER_FRAME = (long)(Stopwatch.Frequency / _DESIRED_FRAMERATE);
     public ulong FrameCount { get; private set; }
     private long lastSwapTicks = 0l;
-    protected StreamWriter Log { get; } = new("log.txt", false, System.Text.Encoding.ASCII); // MOVE TO SEP. THREAD
+    private readonly Perf perf = new("log.txt");
+
+#if !DEBUG
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+#endif
+    protected void Log (string message) => perf.Log(GetTicks(), message);
+
     public void Run () {
         Glfw.GetCursorPosition(Window, out var mx, out var my);
         lastMousePosition = new(Convert.ToInt32(mx), Convert.ToInt32(my));
@@ -68,49 +68,44 @@ class GlWindowBase:IDisposable {
         State.Dither = false;
 
         Glfw.ShowWindow(Window);
-        OnWindowFocus(IntPtr.Zero, Glfw.GetWindowAttribute(Window, WindowAttribute.Focused));
-
+        OnWindowFocus(Window, Glfw.GetWindowAttribute(Window, WindowAttribute.Focused));
+        var hadFocus = true;
         while (!Glfw.WindowShouldClose(Window)) {
+            Log("frame");
             if (!Focused) {
+                if (hadFocus) {
+                    hadFocus = false;
+                    Log("lostfocus");
+                }
                 lastSwapTicks = 0l;
                 Glfw.WaitEvents();
                 continue;
             }
+            else if (!hadFocus) {
+                hadFocus = true;
+                Log("gotfocus");
+            }
             Render();
         }
     }
-
     private void Render () {
-        Stamp("start");
         if (Focused && CursorGrabbed)
             Camera.Move(10f * FRAME_DURATION);
-
         Render(FRAME_DURATION);
+        Log("delay");
         DelayForRetrace();
-        Stamp(nameof(Glfw.SwapBuffers));
+        Log("vsync");
         Glfw.SwapBuffers(Window);
-        Stamp("end");
-        lastSwapTicks = Ticks;
+        Log("swap");
+        lastSwapTicks = GetTicks();
         ++FrameCount;
     }
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void Stamp () {
-        Log.Write(Ticks);
-        Log.Write(' ');
-        Log.WriteLine(new StackFrame(1).GetMethod().Name);
-    }
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void Stamp (string m) {
-        Log.Write(Ticks);
-        Log.Write(' ');
-        Log.WriteLine(m);
-    }
+
     private void DelayForRetrace () {
-        Stamp();
         var delayed = lastSwapTicks + 3 * EXPECTED_TICKS_PER_FRAME / 4;
         do
             Glfw.PollEvents();
-        while (Ticks < delayed);
+        while (GetTicks() < delayed);
     }
 
     private int swapInterval;
@@ -128,11 +123,25 @@ class GlWindowBase:IDisposable {
     }
 
     protected void SetTitle (string value) => Glfw.SetWindowTitle(Window, value);
+    [KeyBinding(Keys.F1)]
+    protected void CycleSwapInterval (Keys _, InputState state) {
+        if (state != InputState.Release)
+            return;
+        var swapInterval = SwapInterval == 1 ? -1 : SwapInterval + 1;
+        Console.WriteLine(swapInterval);
+        SwapInterval = swapInterval;
+    }
 
     [KeyBinding(Keys.Escape)]
     protected void Close (Keys _, InputState state) {
         if (state == InputState.Release)
-            OnCloseInternal(IntPtr.Zero);
+            OnCloseInternal(Window);
+    }
+
+    [KeyBinding(Keys.Tab)]
+    protected void ToggleCursorGrabbed (Keys _, InputState state) {
+        if (state == InputState.Release)
+            CursorGrabbed = !CursorGrabbed;
     }
 
 #pragma warning disable IDE0052 // Remove unread private members
@@ -153,11 +162,6 @@ class GlWindowBase:IDisposable {
     private WindowContentsScaleCallback onWindowContentScale;
     private WindowMaximizedCallback onWindowMaximize;
     private readonly DebugProc debugProc;
-    [KeyBinding(Keys.Tab)]
-    protected void ToggleCursorGrabbed (Keys _, InputState state) {
-        if (state == InputState.Release)
-            CursorGrabbed = !CursorGrabbed;
-    }
 #pragma warning restore IDE0052 // Remove unread private members
     private void Assign () {
         onChar = OnChar;
@@ -200,24 +204,23 @@ class GlWindowBase:IDisposable {
         _ = Glfw.SetWindowSizeCallback(Window, onWindowSize);
     }
 
-    private void OnWindowContentScale (IntPtr _, float xScale, float yScale) => Stamp();
-    private void OnScroll (IntPtr _, double x, double y) => Stamp();
-    private void OnJoystick (Joystick joystick, ConnectionStatus status) => Stamp();
-    private void OnDrop (IntPtr _, int count, IntPtr arrayPtr) => Stamp();
-    private void OnCharMods (IntPtr _, uint codePoint, ModifierKeys mods) => Stamp();
-    private void OnCursorEnter (IntPtr _, bool entering) => Stamp();
-    private void OnWindowIconify (IntPtr _, bool iconified) => Stamp();
-    private void OnWindowSize (IntPtr _, int width, int height) => Stamp();
-    private void OnWindowRefresh (IntPtr _) => Stamp();
-    private void OnMonitor (Monitor monitor, ConnectionStatus status) => Stamp();
-    private void OnWindowPosition (IntPtr _, double x, double y) => Stamp();
-    private void OnWindowMaximize (IntPtr _, bool maximized) => Stamp();
-    private void OnMouseButton (IntPtr _, MouseButton button, InputState state, ModifierKeys modifiers) => Stamp();
-    private void OnChar (IntPtr _, uint code) => Stamp();
+    private void OnWindowContentScale (Window _, float xScale, float yScale) { }
+    private void OnScroll (Window _, double x, double y) { }
+    private void OnJoystick (Joystick joystick, ConnectionStatus status) { }
+    private void OnDrop (Window _, int count, IntPtr arrayPtr) { }
+    private void OnCharMods (Window _, uint codePoint, ModifierKeys mods) { }
+    private void OnCursorEnter (Window _, bool entering) { }
+    private void OnWindowIconify (Window _, bool iconified) { }
+    private void OnWindowSize (Window _, int width, int height) { }
+    private void OnWindowRefresh (Window _) { }
+    private void OnMonitor (Monitor monitor, ConnectionStatus status) { }
+    private void OnWindowPosition (Window _, double x, double y) { }
+    private void OnWindowMaximize (Window _, bool maximized) { }
+    private void OnMouseButton (Window _, MouseButton button, InputState state, ModifierKeys modifiers) { }
+    private void OnChar (Window _, uint code) { }
 
     private Vector2i lastMousePosition;
-    private void OnCursorPosition (IntPtr _, double x, double y) {
-        Stamp();
+    private void OnCursorPosition (Window _, double x, double y) {
         var delta = new Vector2i(Convert.ToInt32(x), Convert.ToInt32(y));
         var mouseDelta = delta - lastMousePosition;
         if (Focused && CursorGrabbed)
@@ -225,21 +228,18 @@ class GlWindowBase:IDisposable {
         lastMousePosition = delta;
     }
 
-    private void OnWindowFocus (IntPtr _, bool focused) {
-        Stamp();
+    private void OnWindowFocus (Window _, bool focused) {
         Focused = focused;
         if (!focused)
             CursorGrabbed = false;
     }
 
-    private void OnFramebufferSize (IntPtr _, int width, int height) {
-        Stamp();
+    private void OnFramebufferSize (Window _, int width, int height) {
         Width = width;
         Height = height;
     }
 
-    private void OnKey (IntPtr _, Keys key, int code, InputState state, ModifierKeys modifier) {
-        Stamp();
+    private void OnKey (Window _, Keys key, int code, InputState state, ModifierKeys modifier) {
         if (keys.TryGetValue(key, out var keyAction))
             keyAction(key, state);
     }
@@ -248,7 +248,7 @@ class GlWindowBase:IDisposable {
     protected void CameraKey (Keys key, InputState state) => _ = Camera.Key(key, state);
 
     protected virtual void OnClose () { }
-    private void OnCloseInternal (IntPtr _) {
+    private void OnCloseInternal (Window _) {
         Glfw.SetWindowShouldClose(Window, true);
         OnClose();
     }
@@ -265,7 +265,7 @@ class GlWindowBase:IDisposable {
             if (disposing) {
                 Glfw.DestroyWindow(Window);
                 Window = Window.None;
-                Log.Dispose();
+                perf.Dispose();
             }
             disposed = true;
         }

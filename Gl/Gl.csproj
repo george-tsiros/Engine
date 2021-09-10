@@ -21,13 +21,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="glfw-net" Version="3.3.1" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Update="gl.xml">
-            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-        </None>
+      <ProjectReference Include="..\GLFW.NET\GLFW.NET.csproj" />
     </ItemGroup>
 
 </Project>

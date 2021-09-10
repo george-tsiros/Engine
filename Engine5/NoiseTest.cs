@@ -120,12 +120,12 @@ class NoiseTest:GlWindowBase {
         }
     }
     unsafe protected override void Render (float dt) {
-        var t0 = Ticks;
+        var t0 = GetTicks();
         if (FrameCount > 0) {
             countdown.Wait();
             countdown.Reset(_THREADCOUNT);
         }
-        stats.Enter((Ticks - t0) / (double)Stopwatch.Frequency);
+        stats.Enter((GetTicks() - t0) / (double)Stopwatch.Frequency);
         if (stats.Index == 0)
             Utilities.Trace(Math.Round(1000.0 * stats.GetMean(), 6).ToString());
 
