@@ -5,6 +5,18 @@ using System.Runtime.CompilerServices;
 using System.Text;
 
 class Program {
+    private enum Kind:byte {
+        Stamp,
+        Enter,
+        Leave,
+    }
+    private class BenchResult:IComparable<BenchResult> {
+        public double Performance { get; }
+        public string Message { get; }
+        public BenchResult (double performance, string message) => (Performance, Message) = (performance, message);
+        public int CompareTo (BenchResult other) => Performance.CompareTo(other.Performance);
+        public override string ToString () => Message;
+    }
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static void PushAscii (Span<byte> bytes, ref long int64, ref int offset) {
         int64 = Math.DivRem(int64, 10, out var d);
@@ -39,16 +51,16 @@ class Program {
     }
 
     static void Main () {
-        Bench_Actual_Stream();
+        Bench_Binary_Actual();
         _ = Console.ReadLine();
     }
     private static void Trace () => Console.WriteLine(new StackFrame(1).GetMethod().Name);
-    private static void Bench_Null_Stream () {
+    private static void Bench_Actual_Stream () {
         Trace();
         using var stream = File.Create("test.bin");
         Bench(stream);
     }
-    private static void Bench_Actual_Stream () {
+    private static void Bench_Null_Stream () {
         Trace();
         Bench(Stream.Null);
     }
@@ -62,12 +74,89 @@ class Program {
         Trace();
         Bench(StreamWriter.Null);
     }
+    private static void Bench_Binary_Null () {
+        Trace();
+        Bench_Binary(Stream.Null);
+    }
+    private static void Bench_Binary_Actual () {
+        Trace();
+        using Stream writer = File.Create("test.bin");
+        Bench_Binary(writer);
+    }
+
+    private static int BestIndex<T> (List<T> list) where T : class, IComparable<T> {
+        T best = null;
+        var bestIndex = -1;
+        var count = list.Count;
+        for (var i = 0; i < count; ++i)
+            if (best is null || list[i].CompareTo(best) > 0) {
+                best = list[i];
+                bestIndex = i;
+            }
+        return bestIndex;
+    }
+
+    private static void Bench_Binary (Stream writer, long count = 1000000l) {
+        var kinds = new Kind[count];
+        var longs = new long[count];
+        var strings = new string[count];
+        var r = new Random();
+        var results = new List<BenchResult>();
+        do {
+            for (var i = 0; i < count; ++i) {
+                kinds[i] = (Kind)r.Next(0, 3);
+                longs[i] = r.NextInt64(1_000_000, 1_000_000_000);
+                strings[i] = r.Next(2) == 1 ? RandomString(r) : null;
+            }
+            var t0 = Stopwatch.GetTimestamp();
+            for (var i = 0; i < count; ++i)
+                CastingSequential(writer, kinds[i], longs[i], strings[i]);
+            var t1 = Stopwatch.GetTimestamp();
+            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "casting sequential :")));
+
+            t0 = Stopwatch.GetTimestamp();
+            for (var i = 0; i < count; ++i)
+                AsciiGetBytesSequential(writer, kinds[i], longs[i], strings[i]);
+            t1 = Stopwatch.GetTimestamp();
+            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "ascii sequential :")));
+
+            t0 = Stopwatch.GetTimestamp();
+            for (var i = 0; i < count; ++i)
+                CastingInOne(writer, kinds[i], longs[i], strings[i]);
+            t1 = Stopwatch.GetTimestamp();
+            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "casting in one :")));
+
+            t0 = Stopwatch.GetTimestamp();
+            for (var i = 0; i < count; ++i)
+                AsciiGetBytesInOne(writer, kinds[i], longs[i], strings[i]);
+            t1 = Stopwatch.GetTimestamp();
+            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "ascii in one :")));
+
+            t0 = Stopwatch.GetTimestamp();
+            for (var i = 0; i < count; ++i)
+                CastingInOnePointers(writer, kinds[i], longs[i], strings[i]);
+            t1 = Stopwatch.GetTimestamp();
+            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "casting in one pointers :")));
+
+            t0 = Stopwatch.GetTimestamp();
+            for (var i = 0; i < count; ++i)
+                AsciiGetBytesInOnePointers(writer, kinds[i], longs[i], strings[i]);
+            t1 = Stopwatch.GetTimestamp();
+            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "ascii in one pointers :")));
+
+
+            results.Sort();
+            Console.WriteLine(string.Join("\n", results));
+            Console.WriteLine();
+            results.Clear();
+        } while (!Console.KeyAvailable);
+    }
 
     private static void Bench (StreamWriter writer, long count = 1000000l) {
         const string format = "{0} {1}\n";
         var longs = new long[count];
-        var r = new Random();
         var strings = new string[count];
+        var r = new Random();
         do {
             for (var i = 0; i < count; ++i) {
                 longs[i] = r.NextInt64(1_000_000, 1_000_000_000);
@@ -165,6 +254,106 @@ class Program {
         var offset = ToCharsInlined(int64, bytes);
         _ = Encoding.ASCII.GetBytes(str, bytes.Slice(20));
         stream.Write(bytes.Slice(offset));
+    }
+
+
+    unsafe private static void CastingSequential (Stream stream, Kind kind, long int64, string str) {
+        stream.WriteByte((byte)kind);
+        Span<byte> bytes = stackalloc byte[sizeof(long)];
+        fixed (byte* p = bytes)
+            *(long*)p = int64;
+        stream.Write(bytes);
+        var len = str?.Length ?? 0;
+        if (len != 0) {
+            stream.WriteByte((byte)len);
+            Span<byte> chars = stackalloc byte[len];
+            for (var i = 0; i < len; ++i)
+                chars[i] = (byte)str[i];
+            stream.Write(chars);
+        }
+    }
+
+    unsafe private static void AsciiGetBytesSequential (Stream stream, Kind kind, long int64, string str) {
+        stream.WriteByte((byte)kind);
+        Span<byte> bytes = stackalloc byte[sizeof(long)];
+        fixed (byte* p = bytes)
+            *(long*)p = int64;
+        stream.Write(bytes);
+        var len = str?.Length ?? 0;
+        if (len != 0) {
+            stream.WriteByte((byte)len);
+            Span<byte> chars = stackalloc byte[len];
+            _ = Encoding.ASCII.GetBytes(str, chars);
+            stream.Write(chars);
+        }
+    }
+
+    unsafe private static void CastingInOne (Stream stream, Kind kind, long int64, string str) {
+        const int int64_Offset = sizeof(byte);
+        const int length_Offset = int64_Offset + sizeof(long);
+        const int string_Offset = length_Offset + sizeof(byte);
+        var len = str?.Length ?? 0;
+        Span<byte> bytes = stackalloc byte[string_Offset + len];
+        bytes[0] = (byte)kind;
+        fixed (byte* p = &bytes[int64_Offset])
+            *(long*)p = int64;
+        if (len != 0) {
+            bytes[length_Offset] = (byte)len;
+            for (int i = 0, o = length_Offset; i < len; ++i, ++o)
+                bytes[o] = (byte)str[i];
+        }
+        stream.Write(bytes);
+    }
+
+    unsafe private static void CastingInOnePointers (Stream stream, Kind kind, long int64, string str) {
+        const int int64_Offset = sizeof(byte);
+        const int length_Offset = int64_Offset + sizeof(long);
+        const int string_Offset = length_Offset + sizeof(byte);
+        var len = str?.Length ?? 0;
+        var byteCount = string_Offset + len;
+        var bytes = stackalloc byte[byteCount];
+        bytes[0] = (byte)kind;
+        *(long*)(bytes + int64_Offset) = int64;
+        if (len != 0) {
+            bytes[length_Offset] = (byte)len;
+            for (int i = 0, o = length_Offset; i < len; ++i, ++o)
+                bytes[o] = (byte)str[i];
+        }
+        stream.Write(new ReadOnlySpan<byte>(bytes, byteCount));
+    }
+
+
+    unsafe private static void AsciiGetBytesInOne (Stream stream, Kind kind, long int64, string str) {
+        const int int64_Offset = 1;// sizeof(byte);
+        const int length_Offset = 9;// int64Offset + sizeof(long);
+        const int string_Offset = 10;// strlenOffset + sizeof(byte);
+        var len = str?.Length ?? 0;
+        Span<byte> bytes = stackalloc byte[string_Offset + len];
+        bytes[0] = (byte)kind;
+        fixed (byte* p = &bytes[int64_Offset])
+            *(long*)p = int64;
+        if (len != 0) {
+            bytes[length_Offset] = (byte)len;
+            _ = Encoding.ASCII.GetBytes(str, bytes.Slice(string_Offset));
+        }
+        stream.Write(bytes);
+    }
+
+    unsafe private static void AsciiGetBytesInOnePointers (Stream stream, Kind kind, long int64, string str) {
+        const int int64_Offset = 1;// sizeof(byte);
+        const int length_Offset = 9;// int64Offset + sizeof(long);
+        const int string_Offset = 10;// strlenOffset + sizeof(byte);
+        var len = str?.Length ?? 0;
+        var byteCount = string_Offset + len;
+        var bytes = stackalloc byte[byteCount];
+        bytes[0] = (byte)kind;
+        *(long*)(bytes + int64_Offset) = int64;
+
+        if (len != 0) {
+            bytes[length_Offset] = (byte)len;
+            _ = Encoding.ASCII.GetBytes(str, new Span<byte>(bytes + string_Offset, len));
+        }
+        stream.Write(new ReadOnlySpan<byte>(bytes, byteCount));
     }
 
     private static void Rep (long ticks, long count, string info = null) => Console.WriteLine(Format(ticks, count, info));

@@ -16,7 +16,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Engine5", "Engine5\Engine5.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{12ADDFC7-7A07-4134-B502-14C60E662BCE}"
 	ProjectSection(SolutionItems) = preProject
-		..\..\.editorconfig = ..\..\.editorconfig
+		..\.editorconfig = ..\.editorconfig
 		glfw.dll = glfw.dll
 	EndProjectSection
 EndProject

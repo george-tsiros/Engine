@@ -4,21 +4,19 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
       <LangVersion>preview</LangVersion>
-      <ProduceReferenceAssemblies>false</ProduceReferenceAssemblies>
+        <OutputPath>..\bin</OutputPath>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+        <ProduceReferenceAssemblies>false</ProduceReferenceAssemblies>
+    <NoWarn>1701;1702;CS0078</NoWarn>
+    <PlatformTarget>x64</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <NoWarn>1701;1702;CS0078</NoWarn>
-    <OutputPath></OutputPath>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <NoWarn>1701;1702;CS0078</NoWarn>
-    <OutputPath></OutputPath>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>

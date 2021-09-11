@@ -5,8 +5,11 @@
         <LangVersion>preview</LangVersion>
         <PlatformTarget>x64</PlatformTarget>
         <NoWarn>1701;1702;CS0078</NoWarn>
-        <OutputPath>bin\</OutputPath>
+        <OutputPath>..\bin</OutputPath>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
         <ProduceReferenceAssemblies>false</ProduceReferenceAssemblies>
+        <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -67,11 +70,35 @@
         <None Update="shadersources\rasterFont.vert">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="unused\drawArrays.frag">
+          <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </None>
+        <None Update="unused\drawArrays.vert">
+          <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </None>
+        <None Update="unused\gRenderColor.frag">
+          <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </None>
+        <None Update="unused\gRenderColor.vert">
+          <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </None>
+        <None Update="unused\multipleOutputs.frag">
+          <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </None>
+        <None Update="unused\multipleOutputs.vert">
+          <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </None>
+        <None Update="unused\multipleOutputsWithTranslation.frag">
+          <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </None>
+        <None Update="unused\multipleOutputsWithTranslation.vert">
+          <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </None>
         <None Update="unused\rasterStrings.frag">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
         </None>
         <None Update="unused\rasterStrings.vert">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
         </None>
         <None Update="shadersources\skyBox.frag">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -91,10 +118,16 @@
         <None Update="shadersources\solidColor.vert">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="unused\textureSimpleWithTranslation.frag">
+          <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </None>
+        <None Update="unused\textureSimpleWithTranslation.vert">
+          <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-        <Exec Command="C:\projects\source\Engine\ShaderGen\bin\net6.0\ShaderGen.exe $(ProjectDir)shadersources\ $(ProjectDir)" />
+        <Exec Command="&quot;C:\projects\source\Engine\bin\ShaderGen.exe&quot; $(ProjectDir)shadersources\ $(ProjectDir)" />
     </Target>
 
 </Project>

@@ -7,6 +7,7 @@ using static Gl.Utilities;
 using System.Collections.Generic;
 using System.Reflection;
 using GLFW;
+using System.Runtime.CompilerServices;
 
 class GlWindowBase:IDisposable {
 
@@ -54,12 +55,8 @@ class GlWindowBase:IDisposable {
     private static readonly long EXPECTED_TICKS_PER_FRAME = (long)(Stopwatch.Frequency / _DESIRED_FRAMERATE);
     public ulong FrameCount { get; private set; }
     private long lastSwapTicks = 0l;
-    private readonly Perf perf = new("log.txt");
+    private readonly Perf perf = new("log.bin");
 
-#if !DEBUG
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-#endif
-    protected void Log (string message) => perf.Log(GetTicks(), message);
 
     public void Run () {
         Glfw.GetCursorPosition(Window, out var mx, out var my);
@@ -69,43 +66,35 @@ class GlWindowBase:IDisposable {
 
         Glfw.ShowWindow(Window);
         OnWindowFocus(Window, Glfw.GetWindowAttribute(Window, WindowAttribute.Focused));
-        var hadFocus = true;
         while (!Glfw.WindowShouldClose(Window)) {
-            Log("frame");
-            if (!Focused) {
-                if (hadFocus) {
-                    hadFocus = false;
-                    Log("lostfocus");
-                }
+            if (Focused) {
+                Render();
+            } else {
                 lastSwapTicks = 0l;
                 Glfw.WaitEvents();
-                continue;
             }
-            else if (!hadFocus) {
-                hadFocus = true;
-                Log("gotfocus");
-            }
-            Render();
         }
     }
     private void Render () {
+        perf.Enter(GetTicks(), "render");
         if (Focused && CursorGrabbed)
             Camera.Move(10f * FRAME_DURATION);
         Render(FRAME_DURATION);
-        Log("delay");
         DelayForRetrace();
-        Log("vsync");
         Glfw.SwapBuffers(Window);
-        Log("swap");
+        perf.Leave(GetTicks());
         lastSwapTicks = GetTicks();
         ++FrameCount;
     }
 
     private void DelayForRetrace () {
+        perf.Enter(GetTicks(), "delay");
         var delayed = lastSwapTicks + 3 * EXPECTED_TICKS_PER_FRAME / 4;
-        do
+        do {
+            perf.Log(GetTicks(), "poll");
             Glfw.PollEvents();
-        while (GetTicks() < delayed);
+        } while (GetTicks() < delayed);
+        perf.Leave(GetTicks());
     }
 
     private int swapInterval;

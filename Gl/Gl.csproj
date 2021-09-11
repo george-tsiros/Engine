@@ -6,8 +6,11 @@
         <ProduceReferenceAssemblies>false</ProduceReferenceAssemblies>
         <PlatformTarget>x64</PlatformTarget>
         <NoWarn>1701;1702;CS0078</NoWarn>
-        <OutputPath>bin\</OutputPath>
+        <OutputPath>..\bin</OutputPath>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

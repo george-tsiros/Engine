@@ -1,49 +1,62 @@
-﻿namespace Engine;
+﻿#define __BINARY__
+
+namespace Engine;
 using System;
 using System.IO;
-using System.Text;
+using System.Runtime.CompilerServices;
 
 sealed class Perf:IDisposable {
+    private enum Kind:byte {
+        Stamp,
+        Enter,
+        Leave,
+    }
+    /*
+    Stamp:
+    [Kind.Stamp][int64][strlen][str]
+    Enter:
+    [Kind.Enter][int64][strlen][str]
+    Leave:
+    [Kind.Leave][int64]
+    */
+    public Perf (string filepath) => stream = File.Create(filepath);
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    private static void PushAscii (Span<byte> a, ref long int64, ref int offset) {
-        int64 = Math.DivRem(int64, 10, out var d);
-        a[--offset] = (byte)(d + '0');
-    }
+    public void Log (long int64, string name) => Log(Kind.Stamp, int64, name);
+
 #if !DEBUG
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    private static int ToChars (long int64, Span<byte> bytes) {
-        var isNegative = int64 < 0l;
-        if (isNegative)
-            int64 = -int64;
-        var offset = 20;
-        do
-            PushAscii(bytes, ref int64, ref offset);
-        while (int64 != 0);
-        if (isNegative)
-            bytes[--offset] = (byte)'-';
-        return offset;
-    }
+    public void Enter (long int64, string name) => Log(Kind.Enter, int64, name);
+#if !DEBUG
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
+    public void Leave (long int64) => Log(Kind.Leave, int64, null);
 
     private bool disposed;
     private readonly Stream stream;
-    public Perf (string filepath) {
-        stream = File.Create(filepath);
-    }
+
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    public void Log (long int64, string str) {
-        var l = str.Length;
-        Span<byte> bytes = stackalloc byte[l + 22];
-        bytes[20] = (byte)' ';
-        bytes[l + 21] = (byte)'\n';
-        var offset = ToChars(int64, bytes);
-        _ = Encoding.ASCII.GetBytes(str, bytes.Slice(21));
-        stream.Write(bytes.Slice(offset));
+    unsafe private void Log (Kind kind, long int64, string str) {
+        const int int64_Offset = sizeof(byte);
+        const int length_Offset = int64_Offset + sizeof(long);
+        const int string_Offset = length_Offset + sizeof(byte);
+        var len = str?.Length ?? 0;
+        Span<byte> bytes = stackalloc byte[string_Offset + len];
+        bytes[0] = (byte)kind;
+        fixed (byte* p = &bytes[int64_Offset])
+            *(long*)p = int64;
+        if (len != 0) {
+            bytes[length_Offset] = (byte)len;
+            for (int i = 0, o = length_Offset; i < len; ++i, ++o)
+                bytes[o] = (byte)str[i];
+        }
+        stream.Write(bytes);
     }
+
     private void Dispose (bool disposing) {
         if (disposed)
             return;
