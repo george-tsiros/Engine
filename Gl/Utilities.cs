@@ -15,7 +15,7 @@ public static class Utilities {
             Console.WriteLine(formatted);
     }
 
-    private static string TraceFormat (string message) => $"{DateTime.Now:mm:ss.fff}> {Method(1)} {message}";
+    private static string TraceFormat (string message) => $"{DateTime.Now:mm:ss.fff}> {Method(2)} {message}";
 
     public static T GetAttribute<T> (MemberInfo self, bool inherit) where T : Attribute {
         var eh = self.GetCustomAttributes(typeof(T), inherit);

@@ -73,14 +73,10 @@ public static class {className} {{
 #pragma warning disable CS0649
 ");
         int attrCount = GetProgram(program, ProgramParameter.ActiveAttributes);
-        Trace($"{attrCount} active attributes");
         for (var i = 0; i < attrCount; ++i) {
             var x = GetActiveAttrib(program, i);
-            if (x.name.StartsWith(" gl_")) {
-                Trace($"skipping '{x.name}'");
+            if (x.name.StartsWith(" gl_")) 
                 continue;
-            }
-            Trace($"'{x.name}': size {x.size}, type {x.type}");
             f.Write($@"
     //size {x.size}, type {x.type}
     [GlAttrib(""{x.name}"")]
@@ -89,14 +85,10 @@ public static class {className} {{
         }
 
         int uniformCount = GetProgram(program, ProgramParameter.ActiveUniforms);
-        Trace($"{uniformCount} active uniforms");
         for (var i = 0; i < uniformCount; ++i) {
             var y = GetActiveUniform(program, i);
-            if (y.name.StartsWith("gl_")) {
-                Trace($"skipping '{y.name}'");
+            if (y.name.StartsWith("gl_")) 
                 continue;
-            }
-            Trace($"'{y.name}': size {y.size}, type {y.type}");
             var fieldName = IsPrimitive(y.name) ? "@" + y.name : y.name;
             var rawTypeName = y.type.ToString();
             f.Write($@"
@@ -111,7 +103,6 @@ public static class {className} {{
     static {className} () => ParsedShader.Prepare(typeof({className}));
 #pragma warning restore CS0649
 }}");
-        Trace(dashes);
     }
     private static readonly string dashes = new('-', 100);
     [STAThread]
