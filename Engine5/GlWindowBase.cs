@@ -24,7 +24,7 @@ class GlWindowBase:IDisposable {
 
     private void BindKeys () {
         foreach (var mi in GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Instance))
-            if (TryGetAttribute<KeyBindingAttribute>(mi, out var a, false)) {
+            if (mi.GetCustomAttribute<KeyBindingAttribute>(false) is KeyBindingAttribute a) {
                 var action = mi.CreateDelegate<Action<Keys, InputState>>(this);
                 foreach (var k in a.Key)
                     keys.Add(k, action);

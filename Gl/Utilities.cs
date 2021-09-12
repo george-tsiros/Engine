@@ -17,14 +17,6 @@ public static class Utilities {
 
     private static string TraceFormat (string message) => $"{DateTime.Now:mm:ss.fff}> {Method(2)} {message}";
 
-    public static T GetAttribute<T> (MemberInfo self, bool inherit) where T : Attribute {
-        var eh = self.GetCustomAttributes(typeof(T), inherit);
-        return eh.Length == 1 && eh[0] is T attr ? attr : null;
-    }
-    public static bool TryGetAttribute<T> (MemberInfo self, [NotNullWhen(true)] out T attribute, bool inherit) where T : Attribute {
-        attribute = GetAttribute<T>(self, inherit);
-        return attribute != null;
-    }
     public static FieldInfo GetBackingField (Type type, PropertyInfo prop, BindingFlags flags = BindingFlags.Instance) => type.GetField($"<{prop.Name}>k__BackingField", BindingFlags.NonPublic | flags);
 
     public static bool TryGetBackingField (Type type, PropertyInfo prop, out FieldInfo eh, BindingFlags flags = BindingFlags.Instance) => (eh = GetBackingField(type, prop, flags)) != null;
