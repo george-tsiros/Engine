@@ -6,8 +6,51 @@ using System.Numerics;
 using Gl;
 
 static class Geometry {
+    internal static T[] Dex<T> (T[] array, int[] indices) where T : struct {
+        T[] b = new T[indices.Length];
+        Dex(array, indices, b);
+        return b;
+    }
+    internal static void Dex<T> (T[] vertices, int[] indices, T[] dex) where T : struct {
+        Debug.Assert(dex.Length == indices.Length);
+        for (var i = 0; i < indices.Length; ++i)
+            dex[i] = vertices[indices[i]];
+    }
+    internal static Vector4[] ScaleInPlace (Vector4[] v, Vector4 s) {
+        for (var i = 0; i < v.Length; ++i)
+            v[i] *= s;
+        return v;
+    }
+    internal static Vector4[] ScaleInPlace (Vector4[] v, float f) => ScaleInPlace(v, new Vector4(f, f, f, 1));
+    internal static Vector4[] ScaleInPlace (Vector4[] v, Vector3 f) => ScaleInPlace(v, new Vector4(f, 1));
 
-    public static void FlipWinding (int[] indices) {
+    internal static Vector4[] Translate (Vector4[] v, Vector3 d) {
+        var translated = new Vector4[v.Length];
+        var t = new Vector4(d, 0);
+        for (var i = 0; i < v.Length; ++i)
+            translated[i] = v[i] + t;
+        return translated;
+    }
+
+    internal static Vector4[] TranslateInPlace (Vector4[] v, Vector3 d) {
+        var t = new Vector4(d, 0);
+        for (var i = 0; i < v.Length; ++i)
+            v[i] += t;
+        return v;
+    }
+    internal static int[] FlipWinding (int[] indices) {
+        var flipped = new int[indices.Length];
+        var triangleCount = indices.Length / 3;
+        Debug.Assert(indices.Length % 3 == 0);
+        for (var i = 0; i < indices.Length; i += 3) {
+            flipped[i] = indices[i];
+            flipped[i + 1] = indices[i + 2];
+            flipped[i + 2] = indices[i + 1];
+        }
+        return flipped;
+    }
+
+    internal static void FlipWindingInPlace (int[] indices) {
         var triangleCount = indices.Length / 3;
         Debug.Assert(indices.Length % 3 == 0);
         for (var i = 0; i < indices.Length; i += 3) {
@@ -17,7 +60,7 @@ static class Geometry {
         }
     }
 
-    public static Vector4[] CreateNormals (Vector4[] vertices, int[] indices) {
+    internal static Vector4[] CreateNormals (Vector4[] vertices, int[] indices) {
         var indexCount = indices.Length;
         var faceCount = indexCount / 3;
         Debug.Assert(indexCount % 3 == 0);
@@ -50,7 +93,7 @@ static class Geometry {
         return Vector3.Normalize(Vector3.Cross(ab, bc));
     }
 
-    public static Vector4[] CreateNormals (Vector4[] vertices) {
+    internal static Vector4[] CreateNormals (Vector4[] vertices) {
         Debug.Assert(vertices.Length % 3 == 0);
         var normals = new Vector4[vertices.Length];
         for (var i = 0; i < vertices.Length; i += 3) {
@@ -67,7 +110,7 @@ static class Geometry {
         return normals;
     }
 
-    public static Vector4[] Quad => new Vector4[] {
+    internal static Vector4[] Quad => new Vector4[] {
             new(-1, -1, 0, 1),
             new(+1, -1, 0, 1),
             new(+1, +1, 0, 1),
@@ -76,7 +119,7 @@ static class Geometry {
             new(-1, -1, 0, 1),
         };
 
-    public static Vector2[] QuadUV => new Vector2[] {
+    internal static Vector2[] QuadUV => new Vector2[] {
             new(0, 0),
             new(1, 0),
             new(1, 1),
@@ -85,7 +128,7 @@ static class Geometry {
             new(0, 0),
         };
 
-    public static Vector2[] QuadUV2 => new Vector2[] {
+    internal static Vector2[] QuadUV2 => new Vector2[] {
             new(0, 0),
             new(1, 0),
             new(1, 1),
@@ -94,7 +137,7 @@ static class Geometry {
             new(0, 1),
         };
 
-    public static Vector2i[] QuadUVi => new Vector2i[] {
+    internal static Vector2i[] QuadUVi => new Vector2i[] {
             new(0, 0),
             new(1, 0),
             new(1, 1),
@@ -103,7 +146,7 @@ static class Geometry {
             new(0, 1),
         };
 
-    public static int[] QuadUVIndices => new int[] { 0, 1, 2, 0, 2, 3, };
+    internal static int[] QuadUVIndices => new int[] { 0, 1, 2, 0, 2, 3, };
     /*
        4-----5
       /     /
@@ -114,45 +157,44 @@ static class Geometry {
     |     |/
     3-----2
     01234567890123456789012345678901234567890
-    ┌─────────┬─────────┬─────────┬─────────┐
-    │         │         │         │         │
-    │         │         │         │         │
-    │         │         │         │         │
-    ├─────────┼─────────┼─────────┼─────────┤
-    │         │         │         │         │
-    │         │         │         │         │
-    │         │         │         │         │
-    ├─────────┼─────────┼─────────┼─────────┤
-    │         │         │         │         │
-    │         │         │         │         │
-    │         │         │         │         │
-    ├─────────┼─────────┼─────────┼─────────┤
-    │         │         │         │         │
-    │         │         │         │         │
-    │         │         │         │         │
-    └─────────┴─────────┴─────────┴─────────┘
+    |---------|---------|---------|----------�
+    |         |         |         |         |
+    |         |         |         |         |
+    |         |         |         |         |
+    |---------|---------|---------|---------|-
+    |         |         |         |         |
+    |         |         |         |         |
+    |         |         |         |         |
+    |---------|---------|---------|---------|-
+    |         |         |         |         |
+    |         |         |         |         |
+    |         |         |         |         |
+    |---------|---------|---------|---------|-
+    |         |         |         |         |
+    |         |         |         |         |
+    |         |         |         |         |
 
-    ┌─────────┬─────────┬─────────┬─────────┐
-    │0        │1        │2        │3        │4
-    │         │   top   │         │         │
-    │         │         │         │         │
-    ├─────────┼─────────┼─────────┼─────────┤
-    │5        │6        │7        │8        │9
-    │  left   │  near   │  right  │   far   │
-    │         │         │         │         │
-    ├─────────┼─────────┼─────────┼─────────┤
-    │10       │11       │12       │13       │14
-    │         │ bottom  │         │         │
-    │         │         │         │         │
-    ├─────────┼─────────┼─────────┼─────────┤
-    │15       │16       │17       │18       │19
-    │         │         │         │         │
-    │         │         │         │         │
-    └─────────┴─────────┴─────────┴─────────┘
+    --------------------------------------------------
+    |0        |1        |2        |3        |4
+    |         |   top   |         |         |
+    |         |         |         |         |
+    --------------------------------------------------
+    |5        |6        |7        |8        |9
+    |  left   |  near   |  right  |   far   |
+    |         |         |         |         |
+    --------------------------------------------------
+    |10       |11       |12       |13       |14
+    |         | bottom  |         |         |
+    |         |         |         |         |
+    --------------------------------------------------
+    |15       |16       |17       |18       |19
+    |         |         |         |         |
+    |         |         |         |         |
+    --------------------------------------------------
 
     */
-    public static Vector4[] CubeVertices => new Vector4[] { new(0, 0, 0, 1), new(1, 0, 0, 1), new(1, 0, 1, 1), new(0, 0, 1, 1), new(0, 1, 0, 1), new(1, 1, 0, 1), new(1, 1, 1, 1), new(0, 1, 1, 1), };
-    public static Vector2[] CubeUVVectors => new Vector2[] {
+    internal static Vector4[] CubeVertices => new Vector4[] { new(0, 0, 0, 1), new(1, 0, 0, 1), new(1, 0, 1, 1), new(0, 0, 1, 1), new(0, 1, 0, 1), new(1, 1, 0, 1), new(1, 1, 1, 1), new(0, 1, 1, 1), };
+    internal static Vector2[] CubeUVVectors => new Vector2[] {
             new(0.00f, 0.00f),
             new(0.25f, 0.00f),
             new(0.50f, 0.00f),
@@ -184,7 +226,7 @@ static class Geometry {
             new(1.00f, 1.00f),
 
         };
-    public static int[] CubeIndices => new int[] {
+    internal static int[] CubeIndices { get; } = new int[] {
             1, 5, 6, 6, 2, 1, // right
             0, 3, 7, 7, 4, 0, // left
             4, 7, 6, 6, 5, 4, // top
@@ -192,7 +234,7 @@ static class Geometry {
             2, 6, 7, 7, 3, 2, // near
             0, 4, 5, 5, 1, 0, // far
         };
-    public static int[] CubeUVIndices => new int[] {
+    internal static int[] CubeUVIndices => new int[] {
             13, 8, 7, 7 , 12, 13,
             10, 11, 6, 6, 5, 10,
             6, 7, 2, 2, 1, 6,
@@ -200,6 +242,6 @@ static class Geometry {
             12, 7, 6, 6, 11, 12,
             14, 9, 8, 8, 13, 14,
         };
-    public static Vector4[] CubeNormals => new Vector4[] { Vector4.UnitX, -Vector4.UnitX, Vector4.UnitY, -Vector4.UnitY, Vector4.UnitZ, -Vector4.UnitZ, };
-    public static int[] CubeNormalIndices => new int[] { 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, };
+    internal static Vector4[] CubeNormals => new Vector4[] { Vector4.UnitX, -Vector4.UnitX, Vector4.UnitY, -Vector4.UnitY, Vector4.UnitZ, -Vector4.UnitZ, };
+    internal static int[] CubeNormalIndices => new int[] { 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, };
 }

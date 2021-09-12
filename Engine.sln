@@ -36,6 +36,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Perf", "Perf\Perf.csproj", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GLFW.NET", "GLFW.NET\GLFW.NET.csproj", "{1B26E7A2-FE9B-485E-821D-B757644046E1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitmapToRaster", "BitmapToRaster\BitmapToRaster.csproj", "{C13BAF2C-6773-4281-AB1B-2B5FA1BD4E40}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -186,6 +188,18 @@ Global
 		{1B26E7A2-FE9B-485E-821D-B757644046E1}.Release|x64.Build.0 = Release|Any CPU
 		{1B26E7A2-FE9B-485E-821D-B757644046E1}.Release|x86.ActiveCfg = Release|Any CPU
 		{1B26E7A2-FE9B-485E-821D-B757644046E1}.Release|x86.Build.0 = Release|Any CPU
+		{C13BAF2C-6773-4281-AB1B-2B5FA1BD4E40}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C13BAF2C-6773-4281-AB1B-2B5FA1BD4E40}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C13BAF2C-6773-4281-AB1B-2B5FA1BD4E40}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C13BAF2C-6773-4281-AB1B-2B5FA1BD4E40}.Debug|x64.Build.0 = Debug|Any CPU
+		{C13BAF2C-6773-4281-AB1B-2B5FA1BD4E40}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C13BAF2C-6773-4281-AB1B-2B5FA1BD4E40}.Debug|x86.Build.0 = Debug|Any CPU
+		{C13BAF2C-6773-4281-AB1B-2B5FA1BD4E40}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C13BAF2C-6773-4281-AB1B-2B5FA1BD4E40}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C13BAF2C-6773-4281-AB1B-2B5FA1BD4E40}.Release|x64.ActiveCfg = Release|Any CPU
+		{C13BAF2C-6773-4281-AB1B-2B5FA1BD4E40}.Release|x64.Build.0 = Release|Any CPU
+		{C13BAF2C-6773-4281-AB1B-2B5FA1BD4E40}.Release|x86.ActiveCfg = Release|Any CPU
+		{C13BAF2C-6773-4281-AB1B-2B5FA1BD4E40}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

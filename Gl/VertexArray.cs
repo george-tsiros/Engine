@@ -4,14 +4,8 @@ using System;
 using System.Numerics;
 using System.Collections.Generic;
 using static Calls;
-public class NotString {
-    public readonly byte[] chars;
-    public NotString (string s) => chars = System.Text.Encoding.ASCII.GetBytes(s);
-    public static explicit operator NotString(string s) => new(s);
-}
 
-public class VertexArray {
-    public static readonly NotString aaaaaaaa = (NotString)"asdgf";
+public class VertexArray:IDisposable {
     public static implicit operator int (VertexArray b) => b.Id;
     public int Id { get; } = CreateVertexArray();
     public void Assign<T> (VertexBuffer<T> buffer, int location, int divisor = 0) where T : unmanaged => Assign(this, buffer, location, divisor);
@@ -49,4 +43,16 @@ public class VertexArray {
         { typeof(Vector3i), (3, AttribType.Int) },
         { typeof(Matrix4x4), (16, AttribType.Float) },
     };
+    private bool disposed;
+    private void Dispose (bool disposing) {
+        if (!disposed) {
+            if (disposing)
+                DeleteVertexArray(this);
+            disposed = true;
+        }
+    }
+    public void Dispose () {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 }

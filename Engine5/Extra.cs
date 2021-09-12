@@ -41,6 +41,7 @@ static class Extra {
         int64 = Math.DivRem(int64, 10, out var d);
         a[--offset] = (byte)(d + '0');
     }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     internal static int ToChars (long int64, Span<byte> bytes) {
         var isNegative = int64 < 0l;
@@ -55,8 +56,6 @@ static class Extra {
         return offset;
     }
 
-
-    internal static Vector2 ByteToVector (byte b) => new(b & 0xf, b >> 4);
 
     internal static float ModuloTwoPi (ref float angle, float delta) {
         angle += delta;
@@ -105,29 +104,5 @@ static class Extra {
             max = l;
     }
 
-    internal static T[] Dex<T> (T[] array, int[] indices) where T : struct {
-        T[] b = new T[indices.Length];
-        Dex(array, indices, b);
-        return b;
-    }
-    internal static void Dex<T> (T[] vertices, int[] indices, T[] dex) where T : struct {
-        Debug.Assert(dex.Length == indices.Length);
-        for (var i = 0; i < indices.Length; ++i)
-            dex[i] = vertices[indices[i]];
-    }
-    internal static Vector4[] ScaleInPlace (Vector4[] v, Vector4 s) {
-        for (var i = 0; i < v.Length; ++i)
-            v[i] *= s;
-        return v;
-    }
-    internal static Vector4[] ScaleInPlace (Vector4[] v, float f) => ScaleInPlace(v, new Vector4(f, f, f, 1));
-    internal static Vector4[] ScaleInPlace (Vector4[] v, Vector3 f) => ScaleInPlace(v, new Vector4(f, 1));
-
-    internal static Vector4[] TranslateInPlace (Vector4[] v, Vector3 d) {
-        var t = new Vector4(d, 0);
-        for (var i = 0; i < v.Length; ++i)
-            v[i] += t;
-        return v;
-    }
 }
 

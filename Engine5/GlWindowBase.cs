@@ -14,9 +14,9 @@ class GlWindowBase:IDisposable {
     unsafe private GlWindowBase (int width, int height, Monitor monitor) {
         Window = Glfw.CreateWindow(Width = width, Height = height, GetType().Name, monitor, Window.None);
         Glfw.MakeContextCurrent(Window);
+        Calls.DebugMessageCallback(debugProc = HandleDebug, IntPtr.Zero);
         Assign();
         SwapInterval = 1;
-        Calls.DebugMessageCallback(debugProc = HandleDebug, IntPtr.Zero);
         State.DebugOutput = true;
         Init();
         BindKeys();
@@ -40,7 +40,7 @@ class GlWindowBase:IDisposable {
 
     protected virtual void Init () { }
     protected virtual void Render (float dt) { }
-    private static readonly long startTicks = Stopwatch.GetTimestamp();
+    private static long startTicks;
 
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
@@ -66,6 +66,7 @@ class GlWindowBase:IDisposable {
 
         Glfw.ShowWindow(Window);
         OnWindowFocus(Window, Glfw.GetWindowAttribute(Window, WindowAttribute.Focused));
+        startTicks = Stopwatch.GetTimestamp();
         while (!Glfw.WindowShouldClose(Window)) {
             if (Focused) {
                 Render();

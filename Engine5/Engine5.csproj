@@ -65,7 +65,7 @@
     </ItemGroup>
 
     <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-        <Exec Command="C:\projects\source\Engine\Engine5\BitmapToRaster.exe skybox.png font.png checkered.png untitled.png" />
+        <Exec Command="&quot;C:\projects\source\Engine\bin\BitmapToRaster.exe&quot; skybox.png font.png checkered.png untitled.png" />
     </Target>
 
 </Project>

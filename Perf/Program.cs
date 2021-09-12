@@ -1,5 +1,6 @@
 ﻿namespace Perf {
     using System;
+    using System.Threading;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Drawing2D;
@@ -22,15 +23,48 @@
         Leave:
         [Kind.Leave][int64]
         */
-        private class Entry { 
+        private class Entry {
             public Kind Kind { get; }
             public long Ticks { get; }
             public string Message { get; } = null;
             public Entry (Kind k, long t, string m = null) => (Kind, Ticks, Message) = (k, t, m);
+            private static readonly byte[] _buffer = new byte[255];
+            private static volatile int _synclock = 0;
+            private static bool ReadExactly (Stream stream, byte[] buffer, int count) => stream.Read(buffer, 0, count) == count;
+            public static Entry FromStream (Stream stream) {
+                if (Interlocked.CompareExchange(ref _synclock, 1, 0) != 0)
+                    throw new ApplicationException("lock failed");
+
+                var i = stream.ReadByte();
+                if (i < byte.MinValue || byte.MaxValue < i)
+                    return null;
+                var k = (Kind)i;
+                if (!ReadExactly(stream, _buffer, sizeof(long)))
+                    throw new ApplicationException($"failed to read {sizeof(long)} bytes");
+                var t = BitConverter.ToInt64(_buffer, 0);
+                string m = null;
+                switch (k) {
+                    case Kind.Enter:
+                    case Kind.Stamp:
+                        var b = (byte)stream.ReadByte();
+                        if (!ReadExactly(stream, _buffer, b))
+                            throw new ApplicationException($"failed to read {b} bytes");
+                        m = Encoding.ASCII.GetString(_buffer, 0, b);
+                        break;
+                    case Kind.Leave:
+                        break;
+                    default:
+                        throw new ApplicationException($"did not expect byte {i}");
+                }
+                var e = new Entry(k, t, m);
+                _synclock = 0;
+                return e;
+            }
         }
         private static int Main (string[] args) {
             try {
-                DoUnsafe(args[0]);
+                var entries = DoUnsafe(args[0]);
+
                 return 0;
             }
             catch (Exception e) {
@@ -42,55 +76,16 @@
             }
         }
 
-        private static void DoUnsafe (string filepath) {
-            using (var f = new StreamReader(filepath, Encoding.ASCII))
-                DoUnsafe(f);
+        private static List<Entry> DoUnsafe (string filepath) {
+            using (var f = File.OpenRead(filepath))
+                return DoUnsafe(f);
         }
 
-        private static IEnumerable<string> Lines (TextReader reader) {
-            for (; ; ) {
-                if (reader.ReadLine() is string l)
-                    yield return l;
-                else
-                    yield break;
-            }
-        }
-
-        private static readonly List<string> strings = new List<string>();
-
-        private static int TryAdd (List<string> strs, string s) {
-            var i = strs.IndexOf(s);
-            if (i < 0) {
-                i = strs.Count;
-                strs.Add(s);
-            }
-            return i;
-        }
-
-        private static void DoUnsafe (TextReader reader) {
-            var r = new Regex(@"^(\d+) (\w+)$", RegexOptions.Compiled);
-            var events = new List<(long t, int e)>();
-            foreach (var l in Lines(reader)) {
-                var m = r.Match(l);
-                if (!m.Success)
-                    continue;
-                var ticks = long.Parse(m.Groups[1].Value);
-                var name = m.Groups[2].Value;
-                var i = TryAdd(strings, name);
-                events.Add((ticks, i));
-            }
-            if (events.Count == 0)
-                return;
-            var frames = new List<(long t, int i)[]>();
-            var frame = new List<(long t, int i)>();
-            foreach (var (e, i) in events) {
-                if (i == 0 && frame.Count > 0) {
-                    frames.Add(frame.ToArray());
-                    frame.Clear();
-                }
-                frame.Add((e, i));
-            }
-            frames.Add(frame.ToArray());
+        private static List<Entry> DoUnsafe (Stream reader) {
+            var entries = new List<Entry>();
+            while (Entry.FromStream(reader) is Entry e)
+                entries.Add(e);
+            return entries;
         }
     }
 }

@@ -27,6 +27,7 @@ unsafe public static class Calls {
     private static readonly delegate* unmanaged[Cdecl]<int, int*, void> glCreateVertexArrays;
     private static readonly delegate* unmanaged[Cdecl]<int, int*, void> glDeleteBuffers;
     private static readonly delegate* unmanaged[Cdecl]<int, int*, void> glDeleteTextures;
+    private static readonly delegate* unmanaged[Cdecl]<int, int*, void> glDeleteVertexArrays;
     private static readonly delegate* unmanaged[Cdecl]<int, int, int*, void> glCreateTextures;
     private static readonly delegate* unmanaged[Cdecl]<DebugProc, IntPtr, void> glDebugMessageCallback;
     private static readonly delegate* unmanaged[Cdecl]<int, void> glDeleteShader;
@@ -114,6 +115,7 @@ unsafe public static class Calls {
     public static void DeleteProgram (int program) => glDeleteProgram(program);
     public static void DeleteShader (int shader) => glDeleteShader(shader);
     public static void DeleteTexture (int texture) => glDeleteTextures(1, &texture);
+    public static void DeleteVertexArray (int vao) => glDeleteVertexArrays(1, &vao);
     public static void DepthFunc (DepthFunction f) => glDepthFunc(f);
     public static void DepthMask (bool enabled) => glDepthMask(enabled);
     public static void Disable (Capability c) => glDisable(c);
