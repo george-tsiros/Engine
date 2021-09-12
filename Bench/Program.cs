@@ -1,7 +1,9 @@
 namespace Bench;
 using System;
 using System.Diagnostics;
+#if !DEBUG
 using System.Runtime.CompilerServices;
+#endif
 using System.Text;
 
 class Program {
@@ -17,12 +19,16 @@ class Program {
         public int CompareTo (BenchResult other) => Performance.CompareTo(other.Performance);
         public override string ToString () => Message;
     }
+#if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+#endif
     private static void PushAscii (Span<byte> bytes, ref long int64, ref int offset) {
         int64 = Math.DivRem(int64, 10, out var d);
         bytes[--offset] = (byte)(d + '0');
     }
+#if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+#endif
     public static int ToChars (long int64, Span<byte> bytes) {
         var isNegative = int64 < 0l;
         if (isNegative)
@@ -95,11 +101,14 @@ class Program {
             }
         return bestIndex;
     }
-
+    private enum FooEnum:byte {
+        A, B, C, D
+    }
     private static void Bench_Binary (Stream writer, long count = 1000000l) {
         var kinds = new Kind[count];
         var longs = new long[count];
         var strings = new string[count];
+        var foos = new FooEnum[count];
         var r = new Random();
         var results = new List<BenchResult>();
         do {
@@ -107,6 +116,7 @@ class Program {
                 kinds[i] = (Kind)r.Next(0, 3);
                 longs[i] = r.NextInt64(1_000_000, 1_000_000_000);
                 strings[i] = r.Next(2) == 1 ? RandomString(r) : null;
+                foos[i] = (FooEnum)r.Next(0, 4);
             }
             var t0 = Stopwatch.GetTimestamp();
             for (var i = 0; i < count; ++i)
@@ -144,12 +154,29 @@ class Program {
             t1 = Stopwatch.GetTimestamp();
             results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "ascii in one pointers :")));
 
+            t0 = Stopwatch.GetTimestamp();
+            for (var i = 0; i < count; ++i)
+                SimplestPossible(writer, longs[i], (byte)foos[i]);
+            t1 = Stopwatch.GetTimestamp();
+            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "FooEnum :")));
+
 
             results.Sort();
             Console.WriteLine(string.Join("\n", results));
             Console.WriteLine();
             results.Clear();
         } while (!Console.KeyAvailable);
+    }
+#if !DEBUG
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
+    unsafe static private void SimplestPossible (Stream stream, long int64, byte id) {
+        Span<byte> bytes = stackalloc byte[sizeof(long) + sizeof(byte)];
+        fixed (byte* p = bytes) {
+            *(long*)p = int64;
+            *(p + sizeof(long)) = id;
+        }
+        stream.Write(bytes);
     }
 
     private static void Bench (StreamWriter writer, long count = 1000000l) {

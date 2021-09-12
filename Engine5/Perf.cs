@@ -3,64 +3,40 @@
 namespace Engine;
 using System;
 using System.IO;
+#if !DEBUG
 using System.Runtime.CompilerServices;
+#endif
+using System.Text;
 
-sealed class Perf:IDisposable {
-    private enum Kind:byte {
-        Stamp,
-        Enter,
-        Leave,
+sealed class Perf<T>:IDisposable where T : struct, Enum {
+
+    public Perf (string filepath) {
+        if (typeof(T).GetEnumUnderlyingType() != typeof(int))
+            throw new ApplicationException($"enum {typeof(T).Name} has underlying type {typeof(T).GetEnumUnderlyingType().Name}, expected {typeof(int).Name} ");
+        stream = File.Create(filepath);
+        var names = Enum.GetNames<T>();
+        stream.WriteRaw(names.Length);
+        foreach (var name in names) {
+            stream.WriteByte((byte)(int)Enum.Parse(typeof(T), name));
+            stream.WriteRaw(name.Length);
+            stream.Write(Encoding.ASCII.GetBytes(name));
+        }
     }
-    /*
-    Stamp:
-    _    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-    Kind [   ticks     ] l 
-    0    1 2 3 4 5 6 7 8 9 10 11 12
-
-
-    [Kind.Stamp][int64][strlen][str]
-    Enter:
-    [Kind.Enter][int64][strlen][str]
-    Leave:
-    [Kind.Leave][int64]
-    */
-    public Perf (string filepath) => stream = File.Create(filepath);
-#if !DEBUG
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
-    public void Log (long int64, string name) => Log(Kind.Stamp, int64, name);
 
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    public void Enter (long int64, string name) => Log(Kind.Enter, int64, name);
-#if !DEBUG
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
-    public void Leave (long int64) => Log(Kind.Leave, int64, null);
-
-    private bool disposed;
-    private readonly Stream stream;
-
-#if !DEBUG
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
-    unsafe private void Log (Kind kind, long int64, string str) {
-        const int int64_Offset = sizeof(byte); // 1
-        const int length_Offset = int64_Offset + sizeof(long); //9
-        const int string_Offset = length_Offset + sizeof(byte); //10
-        var len = str?.Length ?? 0;
-        Span<byte> bytes = stackalloc byte[len != 0 ? string_Offset + len : length_Offset];
-        bytes[0] = (byte)kind;
-        fixed (byte* p = &bytes[int64_Offset])
+    unsafe public void Log (long int64, int id) {
+        Span<byte> bytes = stackalloc byte[sizeof(long) + sizeof(byte)];
+        fixed (byte* p = bytes) {
             *(long*)p = int64;
-        if (len != 0) {
-            bytes[length_Offset] = (byte)len;
-            for (int i = 0, o = string_Offset; i < len; ++i, ++o)
-                bytes[o] = (byte)str[i];
+            *(p + sizeof(long)) = (byte)id;
         }
         stream.Write(bytes);
     }
+
+    private bool disposed;
+    private readonly Stream stream;
 
     private void Dispose (bool disposing) {
         if (disposed)

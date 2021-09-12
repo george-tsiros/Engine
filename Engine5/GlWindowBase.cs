@@ -3,16 +3,27 @@ using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Gl;
-using static Gl.Utilities;
 using System.Collections.Generic;
 using System.Reflection;
 using GLFW;
+#if !DEBUG
 using System.Runtime.CompilerServices;
+#endif
 
 class GlWindowBase:IDisposable {
 
+    protected enum FooNum {
+        Render,
+        Delay,
+        Swap,
+        Camera,
+        Leave = 0x80
+    }
+
+    private readonly bool isFullscreen;
     unsafe private GlWindowBase (int width, int height, Monitor monitor) {
         Window = Glfw.CreateWindow(Width = width, Height = height, GetType().Name, monitor, Window.None);
+        isFullscreen = monitor != Monitor.None;
         Glfw.MakeContextCurrent(Window);
         Calls.DebugMessageCallback(debugProc = HandleDebug, IntPtr.Zero);
         Assign();
@@ -34,29 +45,28 @@ class GlWindowBase:IDisposable {
     public GlWindowBase (Monitor monitor) : this(monitor.WorkArea.Width, monitor.WorkArea.Height, monitor) { }
     public GlWindowBase (int width, int height) : this(width, height, Monitor.None) { }
 
-    public int Width { get; private set; }
-    public int Height { get; private set; }
-    public Window Window { get; private set; }
+    protected int Width { get; private set; }
+    protected int Height { get; private set; }
+    protected Window Window { get; private set; }
+    protected ulong FrameCount { get; private set; }
 
     protected virtual void Init () { }
     protected virtual void Render (float dt) { }
-    private static long startTicks;
 
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #endif
-    protected static long GetTicks () => Stopwatch.GetTimestamp() - startTicks;
 
+    protected long GetTicks () => Stopwatch.GetTimestamp() - startTicks;
     protected Camera Camera { get; } = new Camera(new());
 
     private readonly Dictionary<Keys, Action<Keys, InputState>> keys = new();
     private const float _DESIRED_FRAMERATE = 100.0f;
     private static readonly float FRAME_DURATION = 1.0f / _DESIRED_FRAMERATE;
     private static readonly long EXPECTED_TICKS_PER_FRAME = (long)(Stopwatch.Frequency / _DESIRED_FRAMERATE);
-    public ulong FrameCount { get; private set; }
+    private long startTicks;
     private long lastSwapTicks = 0l;
-    private readonly Perf perf = new("log.bin");
-
+    protected readonly Perf<FooNum> perf = new("log.bin");
 
     public void Run () {
         Glfw.GetCursorPosition(Window, out var mx, out var my);
@@ -66,6 +76,7 @@ class GlWindowBase:IDisposable {
 
         Glfw.ShowWindow(Window);
         OnWindowFocus(Window, Glfw.GetWindowAttribute(Window, WindowAttribute.Focused));
+        CursorGrabbed = isFullscreen;
         startTicks = Stopwatch.GetTimestamp();
         while (!Glfw.WindowShouldClose(Window)) {
             if (Focused) {
@@ -77,25 +88,26 @@ class GlWindowBase:IDisposable {
         }
     }
     private void Render () {
-        perf.Enter(GetTicks(), "render");
+        perf.Log(GetTicks(), (int)FooNum.Render);
         if (Focused && CursorGrabbed)
             Camera.Move(10f * FRAME_DURATION);
         Render(FRAME_DURATION);
         DelayForRetrace();
+        perf.Log(GetTicks(), (int)FooNum.Swap);
         Glfw.SwapBuffers(Window);
-        perf.Leave(GetTicks());
+        perf.Log(GetTicks(), (int)FooNum.Leave);
+        perf.Log(GetTicks(), (int)FooNum.Leave);
         lastSwapTicks = GetTicks();
         ++FrameCount;
     }
 
     private void DelayForRetrace () {
-        perf.Enter(GetTicks(), "delay");
+        perf.Log(GetTicks(), (int)FooNum.Delay);
         var delayed = lastSwapTicks + 3 * EXPECTED_TICKS_PER_FRAME / 4;
         do {
-            perf.Log(GetTicks(), "poll");
             Glfw.PollEvents();
         } while (GetTicks() < delayed);
-        perf.Leave(GetTicks());
+        perf.Log(GetTicks(), (int)FooNum.Leave);
     }
 
     private int swapInterval;
@@ -130,7 +142,7 @@ class GlWindowBase:IDisposable {
 
     [KeyBinding(Keys.Tab)]
     protected void ToggleCursorGrabbed (Keys _, InputState state) {
-        if (state == InputState.Release)
+        if (state == InputState.Release && !isFullscreen)
             CursorGrabbed = !CursorGrabbed;
     }
 
@@ -222,6 +234,8 @@ class GlWindowBase:IDisposable {
         Focused = focused;
         if (!focused)
             CursorGrabbed = false;
+        else if (isFullscreen)
+            CursorGrabbed = true;
     }
 
     private void OnFramebufferSize (Window _, int width, int height) {

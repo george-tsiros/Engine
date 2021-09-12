@@ -21,17 +21,16 @@ static class Extensions {
         return m.Success;
     }
 
-    internal static void Write (this Stream self, long int64) {
-        Span<byte> bytes = stackalloc byte[20];
-        var offset = Extra.ToChars(int64, bytes);
-        self.Write(bytes.Slice(offset));
+    unsafe internal static void WriteRaw (this Stream self, int int32) {
+        Span<byte> bytes = stackalloc byte[sizeof(int)];
+        fixed (byte* p = bytes)
+            *(int*)p = int32;
+        self.Write(bytes);
     }
-
-    internal static void Write (this Stream self, string value) {
-        var maxByteCount = Encoding.ASCII.GetMaxByteCount(value.Length);
-        Span<byte> bytes = stackalloc byte[maxByteCount + 1];
-        var count = Encoding.ASCII.GetBytes(value, bytes.Slice(1));
-        bytes[0] = (byte)count;
-        self.Write(bytes.Slice(0, count + 1));
+    unsafe internal static void WriteRaw (this Stream self, long int64) {
+        Span<byte> bytes = stackalloc byte[sizeof(long)];
+        fixed (byte* p = bytes)
+            *(long*)p = int64;
+        self.Write(bytes);
     }
 }

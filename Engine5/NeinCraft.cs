@@ -36,7 +36,9 @@ class NeinCraft:GlWindowBase {
         State.VertexArray = skyboxVao;
         State.DepthFunc = DepthFunction.LessEqual;
         skyboxTexture.BindTo(0);
+        perf.Log(GetTicks(), (byte)FooNum.Camera);
         SkyBox.View(Camera.RotationOnly);
+        perf.Log(GetTicks(), (byte)FooNum.Leave);
         DrawArrays(Primitive.Triangles, 0, 36);
     }
 

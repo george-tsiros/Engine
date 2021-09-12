@@ -3,7 +3,9 @@ namespace Engine;
 using System;
 using System.Reflection;
 using System.IO;
+#if !DEBUG
 using System.Runtime.CompilerServices;
+#endif
 using System.Diagnostics;
 using System.Numerics;
 using System.Text.RegularExpressions;
@@ -36,13 +38,17 @@ static class Extra {
             }
     }
 
+#if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+#endif
     private static void PushAscii (Span<byte> a, ref long int64, ref int offset) {
         int64 = Math.DivRem(int64, 10, out var d);
         a[--offset] = (byte)(d + '0');
     }
 
+#if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+#endif
     internal static int ToChars (long int64, Span<byte> bytes) {
         var isNegative = int64 < 0l;
         if (isNegative)
@@ -96,13 +102,13 @@ static class Extra {
         return (min, max);
 #endif
     }
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+#if !DEBUG
+    [MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+#endif
     private static void Extrema (float l, ref float min, ref float max) {
         if (l < min)
             min = l;
         if (max < l)
             max = l;
     }
-
 }
-

@@ -1,7 +1,7 @@
 ﻿Resizable=false
 TransparentFramebuffer=false
-Decorated=false
 FocusOnShow=true
+Visible=false
 OpenglDebugContext=true
 OpenglForwardCompatible=true
 CenterCursor=true
