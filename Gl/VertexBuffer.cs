@@ -12,6 +12,7 @@ public class VertexBuffer<T>:IDisposable where T : unmanaged {
     public int Capacity { get; }
     public VertexBuffer (int capacityInElements) => NamedBufferStorage(Id, ElementSize * (Capacity = capacityInElements), IntPtr.Zero, Const.DYNAMIC_STORAGE_BIT);
     public VertexBuffer (T[] data) : this(data.Length) => BufferData(data, data.Length, 0, 0);
+
     unsafe public void BufferData (T[] data, int count, int sourceOffset, int targetOffset) {
         Debug.Assert(!disposed);
         Debug.Assert(sourceOffset + count <= data.Length);
@@ -28,7 +29,7 @@ public class VertexBuffer<T>:IDisposable where T : unmanaged {
     }
 
     private bool disposed;
-    void Dispose (bool _) {
+    private void Dispose (bool _) {
         if (!disposed) {
             DeleteBuffer(Id);
             disposed = true;

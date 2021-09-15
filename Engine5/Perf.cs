@@ -2,6 +2,7 @@
 
 namespace Engine;
 using System;
+using System.Diagnostics;
 using System.IO;
 #if !DEBUG
 using System.Runtime.CompilerServices;
@@ -26,11 +27,22 @@ sealed class Perf<T>:IDisposable where T : struct, Enum {
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    unsafe public void Log (long int64, int id) {
+    unsafe public void Leave () {
         Span<byte> bytes = stackalloc byte[sizeof(long) + sizeof(byte)];
         fixed (byte* p = bytes) {
-            *(long*)p = int64;
-            *(p + sizeof(long)) = (byte)id;
+            *(long*)p = Stopwatch.GetTimestamp();
+            p[sizeof(long)] = 0;
+        }
+        stream.Write(bytes);
+    }
+#if !DEBUG
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
+    unsafe public void Enter (int id) {
+        Span<byte> bytes = stackalloc byte[sizeof(long) + sizeof(byte)];
+        fixed (byte* p = bytes) {
+            *(long*)p = Stopwatch.GetTimestamp();
+            p[sizeof(long)] = (byte)id;
         }
         stream.Write(bytes);
     }

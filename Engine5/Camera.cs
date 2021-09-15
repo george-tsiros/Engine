@@ -7,12 +7,7 @@ using static Extra;
 using Gl;
 using GLFW;
 
-interface IControlled {
-    bool Key (Keys key, InputState state);
-    void Mouse (Vector2i v);
-}
-
-sealed class Camera:IControlled {
+sealed class Camera {
     private static readonly Dictionary<Keys, Vector3> _DIRECTIONS = new() {
         { Keys.Z, -Vector3.UnitX },
         { Keys.X, Vector3.UnitZ },

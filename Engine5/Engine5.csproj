@@ -18,12 +18,12 @@
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-        <DefineConstants>DEBUG;TRACE</DefineConstants>
+        <DefineConstants>DEBUG;TRACE;__PERF__</DefineConstants>
         <Optimize>false</Optimize>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-        <DefineConstants>TRACE</DefineConstants>
+        <DefineConstants>TRACE;</DefineConstants>
         <Optimize>true</Optimize>
     </PropertyGroup>
 

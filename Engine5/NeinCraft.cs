@@ -10,10 +10,12 @@ using GLFW;
 class NeinCraft:GlWindowBase {
     public NeinCraft (Monitor monitor) : base(monitor) { }
     public NeinCraft (int width, int height) : base(width, height) { }
+    
     private VertexArray skyboxVao;
     private Sampler2D skyboxTexture;
     private VertexBuffer<Vector4> cubeVertices;
     private VertexBuffer<Vector2> cubeUV;
+
     protected override void Init () {
         State.Program = SkyBox.Id;
         skyboxVao = new();
@@ -36,9 +38,13 @@ class NeinCraft:GlWindowBase {
         State.VertexArray = skyboxVao;
         State.DepthFunc = DepthFunction.LessEqual;
         skyboxTexture.BindTo(0);
-        perf.Log(GetTicks(), (byte)FooNum.Camera);
+#if __PERF__
+        perf.Enter((int)Events.Camera);
+#endif
         SkyBox.View(Camera.RotationOnly);
-        perf.Log(GetTicks(), (byte)FooNum.Leave);
+#if __PERF__
+        perf.Leave();
+#endif
         DrawArrays(Primitive.Triangles, 0, 36);
     }
 

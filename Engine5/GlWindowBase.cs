@@ -12,22 +12,21 @@ using System.Runtime.CompilerServices;
 
 class GlWindowBase:IDisposable {
 
-    protected enum FooNum {
-        Render,
+    protected enum Events {
+        Render = 1,
         Delay,
         Swap,
         Camera,
-        Leave = 0x80
+        CursorPosition,
     }
 
-    private readonly bool isFullscreen;
     unsafe private GlWindowBase (int width, int height, Monitor monitor) {
         Window = Glfw.CreateWindow(Width = width, Height = height, GetType().Name, monitor, Window.None);
         isFullscreen = monitor != Monitor.None;
         Glfw.MakeContextCurrent(Window);
         Calls.DebugMessageCallback(debugProc = HandleDebug, IntPtr.Zero);
         Assign();
-        SwapInterval = 1;
+        Glfw.SwapInterval(swapInterval = 1);
         State.DebugOutput = true;
         Init();
         BindKeys();
@@ -48,7 +47,7 @@ class GlWindowBase:IDisposable {
     protected int Width { get; private set; }
     protected int Height { get; private set; }
     protected Window Window { get; private set; }
-    protected ulong FrameCount { get; private set; }
+    protected ulong FramesRendered { get; private set; }
 
     protected virtual void Init () { }
     protected virtual void Render (float dt) { }
@@ -60,14 +59,16 @@ class GlWindowBase:IDisposable {
     protected long GetTicks () => Stopwatch.GetTimestamp() - startTicks;
     protected Camera Camera { get; } = new Camera(new());
 
-    private readonly Dictionary<Keys, Action<Keys, InputState>> keys = new();
     private const float _DESIRED_FRAMERATE = 100.0f;
     private static readonly float FRAME_DURATION = 1.0f / _DESIRED_FRAMERATE;
     private static readonly long EXPECTED_TICKS_PER_FRAME = (long)(Stopwatch.Frequency / _DESIRED_FRAMERATE);
     private long startTicks;
     private long lastSwapTicks = 0l;
-    protected readonly Perf<FooNum> perf = new("log.bin");
-
+    private readonly bool isFullscreen;
+    private readonly Dictionary<Keys, Action<Keys, InputState>> keys = new();
+#if __PERF__
+    protected readonly Perf<Events> perf = new("log.bin");
+#endif
     public void Run () {
         Glfw.GetCursorPosition(Window, out var mx, out var my);
         lastMousePosition = new(Convert.ToInt32(mx), Convert.ToInt32(my));
@@ -88,26 +89,36 @@ class GlWindowBase:IDisposable {
         }
     }
     private void Render () {
-        perf.Log(GetTicks(), (int)FooNum.Render);
+#if __PERF__
+        perf.Enter((int)Events.Render);
+#endif
         if (Focused && CursorGrabbed)
             Camera.Move(10f * FRAME_DURATION);
         Render(FRAME_DURATION);
         DelayForRetrace();
-        perf.Log(GetTicks(), (int)FooNum.Swap);
+#if __PERF__
+        perf.Enter((int)Events.Swap);
+#endif
         Glfw.SwapBuffers(Window);
-        perf.Log(GetTicks(), (int)FooNum.Leave);
-        perf.Log(GetTicks(), (int)FooNum.Leave);
+#if __PERF__
+        perf.Leave();
+        perf.Leave();
+#endif
         lastSwapTicks = GetTicks();
-        ++FrameCount;
+        ++FramesRendered;
     }
 
     private void DelayForRetrace () {
-        perf.Log(GetTicks(), (int)FooNum.Delay);
+#if __PERF__
+        perf.Enter((int)Events.Delay);
+#endif
         var delayed = lastSwapTicks + 3 * EXPECTED_TICKS_PER_FRAME / 4;
         do {
             Glfw.PollEvents();
         } while (GetTicks() < delayed);
-        perf.Log(GetTicks(), (int)FooNum.Leave);
+#if __PERF__
+        perf.Leave();
+#endif
     }
 
     private int swapInterval;
@@ -129,9 +140,7 @@ class GlWindowBase:IDisposable {
     protected void CycleSwapInterval (Keys _, InputState state) {
         if (state != InputState.Release)
             return;
-        var swapInterval = SwapInterval == 1 ? -1 : SwapInterval + 1;
-        Console.WriteLine(swapInterval);
-        SwapInterval = swapInterval;
+        SwapInterval = SwapInterval == 1 ? -1 : SwapInterval + 1;
     }
 
     [KeyBinding(Keys.Escape)]
@@ -223,11 +232,17 @@ class GlWindowBase:IDisposable {
 
     private Vector2i lastMousePosition;
     private void OnCursorPosition (Window _, double x, double y) {
+#if __PERF__
+        perf.Enter((int)Events.CursorPosition);
+#endif
         var delta = new Vector2i(Convert.ToInt32(x), Convert.ToInt32(y));
         var mouseDelta = delta - lastMousePosition;
         if (Focused && CursorGrabbed)
             Camera.Mouse(mouseDelta);
         lastMousePosition = delta;
+#if __PERF__
+        perf.Leave();
+#endif
     }
 
     private void OnWindowFocus (Window _, bool focused) {
@@ -256,12 +271,15 @@ class GlWindowBase:IDisposable {
         Glfw.SetWindowShouldClose(Window, true);
         OnClose();
     }
-    private const string _DEBSTR = "source: {0}\ntype: {1}\nseverity: {2}\nmessage: {3}";
+    private const string _DEBUG_FORMAT_STRING = "source: {0}\ntype: {1}\nseverity: {2}\nmessage: {3}";
     unsafe private void HandleDebug (int source, int type, int id, int severity, int length, byte* message, void* _) {
-        throw new ApplicationException(string.Format(_DEBSTR, source, type, severity, Marshal.PtrToStringAnsi(new(message)) ?? "?"));
+        throw new ApplicationException(string.Format(_DEBUG_FORMAT_STRING, source, type, severity, Marshal.PtrToStringAnsi(new(message)) ?? "?"));
     }
 
-    public void Dispose () => Dispose(true);
+    public void Dispose () {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
     private bool disposed;
     protected virtual void Dispose (bool disposing) {
@@ -269,7 +287,9 @@ class GlWindowBase:IDisposable {
             if (disposing) {
                 Glfw.DestroyWindow(Window);
                 Window = Window.None;
+#if __PERF__
                 perf.Dispose();
+#endif
             }
             disposed = true;
         }

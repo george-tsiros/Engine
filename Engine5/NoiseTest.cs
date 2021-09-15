@@ -46,7 +46,7 @@ class NoiseTest:GlWindowBase {
     private Stats stats = new(144);
     private bool usePointers;
     unsafe private void TProcPointers (int threadIndex) {
-        var ms = FrameCount;
+        var ms = FramesRendered;
         var start = _ROWS_PER_THREAD * threadIndex;
         var end = start + _ROWS_PER_THREAD;
         var offset = 4 * _WIDTH * start;
@@ -70,7 +70,7 @@ class NoiseTest:GlWindowBase {
         _ = countdown.Signal();
     }
     private void TProcArrays (int threadIndex) {
-        var ms = FrameCount;
+        var ms = FramesRendered;
         var start = _ROWS_PER_THREAD * threadIndex;
         var end = start + _ROWS_PER_THREAD;
         var offset = 4 * _WIDTH * start;
@@ -121,7 +121,7 @@ class NoiseTest:GlWindowBase {
     }
     unsafe protected override void Render (float dt) {
         var t0 = GetTicks();
-        if (FrameCount > 0) {
+        if (FramesRendered > 0) {
             countdown.Wait();
             countdown.Reset(_THREADCOUNT);
         }

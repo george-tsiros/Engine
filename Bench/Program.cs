@@ -57,13 +57,14 @@ class Program {
     }
 
     static void Main () {
-        Bench_Binary_Actual();
+        Bench_Binary_Actual("test.bin");
+        File.Delete("test.bin");
         _ = Console.ReadLine();
     }
     private static void Trace () => Console.WriteLine(new StackFrame(1).GetMethod().Name);
-    private static void Bench_Actual_Stream () {
+    private static void Bench_Actual_Stream (string filename) {
         Trace();
-        using var stream = File.Create("test.bin");
+        using var stream = File.Create(filename);
         Bench(stream);
     }
     private static void Bench_Null_Stream () {
@@ -84,9 +85,9 @@ class Program {
         Trace();
         Bench_Binary(Stream.Null);
     }
-    private static void Bench_Binary_Actual () {
+    private static void Bench_Binary_Actual (string filename) {
         Trace();
-        using Stream writer = File.Create("test.bin");
+        using Stream writer = File.Create(filename);
         Bench_Binary(writer);
     }
 
@@ -118,50 +119,51 @@ class Program {
                 strings[i] = r.Next(2) == 1 ? RandomString(r) : null;
                 foos[i] = (FooEnum)r.Next(0, 4);
             }
-            var t0 = Stopwatch.GetTimestamp();
-            for (var i = 0; i < count; ++i)
-                CastingSequential(writer, kinds[i], longs[i], strings[i]);
-            var t1 = Stopwatch.GetTimestamp();
-            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "casting sequential :")));
+            var (t0, t1) = (0l, 0l);
+            //t0 = Stopwatch.GetTimestamp();
+            //for (var i = 0; i < count; ++i)
+            //    CastingSequential(writer, kinds[i], longs[i], strings[i]);
+            //t1 = Stopwatch.GetTimestamp();
+            //results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "casting sequential :")));
+
+            //t0 = Stopwatch.GetTimestamp();
+            //for (var i = 0; i < count; ++i)
+            //    AsciiGetBytesSequential(writer, kinds[i], longs[i], strings[i]);
+            //t1 = Stopwatch.GetTimestamp();
+            //results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "ascii sequential :")));
+
+            //t0 = Stopwatch.GetTimestamp();
+            //for (var i = 0; i < count; ++i)
+            //    CastingInOne(writer, kinds[i], longs[i], strings[i]);
+            //t1 = Stopwatch.GetTimestamp();
+            //results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "casting in one :")));
+
+            //t0 = Stopwatch.GetTimestamp();
+            //for (var i = 0; i < count; ++i)
+            //    AsciiGetBytesInOne(writer, kinds[i], longs[i], strings[i]);
+            //t1 = Stopwatch.GetTimestamp();
+            //results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "ascii in one :")));
+
+            //t0 = Stopwatch.GetTimestamp();
+            //for (var i = 0; i < count; ++i)
+            //    CastingInOnePointers(writer, kinds[i], longs[i], strings[i]);
+            //t1 = Stopwatch.GetTimestamp();
+            //results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "casting in one pointers :")));
+
+            //t0 = Stopwatch.GetTimestamp();
+            //for (var i = 0; i < count; ++i)
+            //    AsciiGetBytesInOnePointers(writer, kinds[i], longs[i], strings[i]);
+            //t1 = Stopwatch.GetTimestamp();
+            //results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "ascii in one pointers :")));
 
             t0 = Stopwatch.GetTimestamp();
             for (var i = 0; i < count; ++i)
-                AsciiGetBytesSequential(writer, kinds[i], longs[i], strings[i]);
-            t1 = Stopwatch.GetTimestamp();
-            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "ascii sequential :")));
-
-            t0 = Stopwatch.GetTimestamp();
-            for (var i = 0; i < count; ++i)
-                CastingInOne(writer, kinds[i], longs[i], strings[i]);
-            t1 = Stopwatch.GetTimestamp();
-            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "casting in one :")));
-
-            t0 = Stopwatch.GetTimestamp();
-            for (var i = 0; i < count; ++i)
-                AsciiGetBytesInOne(writer, kinds[i], longs[i], strings[i]);
-            t1 = Stopwatch.GetTimestamp();
-            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "ascii in one :")));
-
-            t0 = Stopwatch.GetTimestamp();
-            for (var i = 0; i < count; ++i)
-                CastingInOnePointers(writer, kinds[i], longs[i], strings[i]);
-            t1 = Stopwatch.GetTimestamp();
-            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "casting in one pointers :")));
-
-            t0 = Stopwatch.GetTimestamp();
-            for (var i = 0; i < count; ++i)
-                AsciiGetBytesInOnePointers(writer, kinds[i], longs[i], strings[i]);
-            t1 = Stopwatch.GetTimestamp();
-            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "ascii in one pointers :")));
-
-            t0 = Stopwatch.GetTimestamp();
-            for (var i = 0; i < count; ++i)
-                SimplestPossible(writer, longs[i], (byte)foos[i]);
+                SimplestPossible(writer, longs[i], (int)foos[i]);
             t1 = Stopwatch.GetTimestamp();
             results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "FooEnum :")));
 
 
-            results.Sort();
+            //results.Sort();
             Console.WriteLine(string.Join("\n", results));
             Console.WriteLine();
             results.Clear();
@@ -170,11 +172,11 @@ class Program {
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    unsafe static private void SimplestPossible (Stream stream, long int64, byte id) {
-        Span<byte> bytes = stackalloc byte[sizeof(long) + sizeof(byte)];
+    unsafe static private void SimplestPossible (Stream stream, long int64, int id) {
+        Span<byte> bytes = stackalloc byte[sizeof(long) + sizeof(int)];
         fixed (byte* p = bytes) {
             *(long*)p = int64;
-            *(p + sizeof(long)) = id;
+            p[+sizeof(long)] = (byte)id;
         }
         stream.Write(bytes);
     }

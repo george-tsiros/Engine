@@ -1,6 +1,5 @@
 namespace Engine;
 
-using GLFW;
 using System;
 using System.IO;
 
@@ -9,7 +8,7 @@ class Engine {
     static void Main () {
         if (File.Exists("hints.txt"))
             Extra.SetHintsFrom("hints.txt");
-        using var gl = new NeinCraft(Glfw.PrimaryMonitor);
+        using var gl = new NeinCraft(GLFW.Glfw.PrimaryMonitor);
         gl.Run();
     }
 }

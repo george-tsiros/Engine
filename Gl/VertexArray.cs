@@ -8,6 +8,7 @@ using static Calls;
 public class VertexArray:IDisposable {
     public static implicit operator int (VertexArray b) => b.Id;
     public int Id { get; } = CreateVertexArray();
+    
     public void Assign<T> (VertexBuffer<T> buffer, int location, int divisor = 0) where T : unmanaged => Assign(this, buffer, location, divisor);
 
     private static void Assign<T> (int vao, VertexBuffer<T> buffer, int location, int divisor = 0) where T : unmanaged {
@@ -15,6 +16,7 @@ public class VertexArray:IDisposable {
         BindBuffer(BufferTarget.Array, buffer);
         Attrib<T>(vao, location, divisor);
     }
+
     private static void Attrib<T> (int vao, int location, int divisor) where T : unmanaged {
         var (size, type) = SizeAndTypeOf(typeof(T));
         if (size > 4)
@@ -43,6 +45,7 @@ public class VertexArray:IDisposable {
         { typeof(Vector3i), (3, AttribType.Int) },
         { typeof(Matrix4x4), (16, AttribType.Float) },
     };
+
     private bool disposed;
     private void Dispose (bool disposing) {
         if (!disposed) {
