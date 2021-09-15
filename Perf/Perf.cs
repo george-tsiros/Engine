@@ -8,8 +8,6 @@
     using System.Windows.Forms;
     using System.Drawing.Imaging;
 
-
-
     class Perf:Form {
 
         private const int _IMAGE_WIDTH_ = 2000;
@@ -134,9 +132,9 @@
                     }
                     var entering = stk.Pop();
                     var x0 = (float)((entering.Ticks - t0) * pixelsPerTick);
-                    var width = (float)((entry.Ticks - entering.Ticks) * pixelsPerTick);
+                    var width = (entry.Ticks - entering.Ticks) * pixelsPerTick;
                     var y0 = stk.Count * _SECTION_HEIGHT_;
-                    g.FillRectangle(GetNextBrush(), x0, y0, width, _SECTION_HEIGHT_);
+                    g.FillRectangle(GetNextBrush(), x0, y0, (float)Math.Max(width, 1.0), _SECTION_HEIGHT_);
                 } while (stk.Count != 0);
 
                 var pixelsPerMilli = (float)(pixelsPerTick * Stopwatch.Frequency / 1000);
@@ -199,13 +197,19 @@
                     var eventLeftTicks = entering.Ticks - frameStartTicks;
                     var eventRightTicks = entry.Ticks - frameStartTicks;
                     var brush = GetNextBrush();
-                    var skip = eventRightTicks < windowLeftTicks || windowRightTicks < eventLeftTicks;
-                    if (skip)
+                    var isCompletelyOutside = eventRightTicks < windowLeftTicks || windowRightTicks < eventLeftTicks;
+                    if (isCompletelyOutside)
                         continue;
 
-                    var ticksFromWindowStart = entering.Ticks - windowLeftTicks;
-
-
+                    var ticksFromWindowStart = eventLeftTicks - windowLeftTicks;
+                    var zoomedInPixelsPerTick = _IMAGE_WIDTH_ / windowWidthTicks;
+                    var rectangleLeft = ticksFromWindowStart * zoomedInPixelsPerTick;
+                    var rectangleWidth = (entry.Ticks - entering.Ticks) * zoomedInPixelsPerTick;
+                    if (rectangleLeft < 0.0) {
+                        rectangleWidth -= Math.Abs(rectangleLeft);
+                        rectangleLeft = 0.0;
+                    }
+                    g.FillRectangle(brush, (float)rectangleLeft, stk.Count * _SECTION_HEIGHT_, (float)rectangleWidth, _SECTION_HEIGHT_);
                 } while (stk.Count != 0);
             }
 

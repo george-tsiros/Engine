@@ -112,7 +112,7 @@ class GlWindowBase:IDisposable {
 #if __PERF__
         perf.Enter((int)Events.Delay);
 #endif
-        var delayed = lastSwapTicks + 3 * EXPECTED_TICKS_PER_FRAME / 4;
+        var delayed = lastSwapTicks + EXPECTED_TICKS_PER_FRAME / 2;
         do {
             Glfw.PollEvents();
         } while (GetTicks() < delayed);
