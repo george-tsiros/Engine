@@ -1,5 +1,6 @@
 ﻿namespace GLFW;
 
+using System;
 using System.Runtime.InteropServices;
 // TODO:  Make custom marshaller instead of this
 

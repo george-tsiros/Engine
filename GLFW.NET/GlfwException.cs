@@ -1,5 +1,5 @@
 ﻿namespace GLFW;
-
+using System;
 public class GlfwException:Exception {
 
     public static string GetErrorMessage (ErrorCode code) => code switch {

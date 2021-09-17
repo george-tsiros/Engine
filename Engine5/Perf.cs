@@ -14,13 +14,13 @@ sealed class Perf<T>:IDisposable where T : struct, Enum {
     public Perf (string filepath) {
         if (typeof(T).GetEnumUnderlyingType() != typeof(int))
             throw new ApplicationException($"enum {typeof(T).Name} has underlying type {typeof(T).GetEnumUnderlyingType().Name}, expected {typeof(int).Name} ");
-        stream = File.Create(filepath);
+        writer = new(File.Create(filepath));
         var names = Enum.GetNames<T>();
-        stream.WriteRaw(names.Length);
+        writer.Write(names.Length);
         foreach (var name in names) {
-            stream.WriteByte((byte)(int)Enum.Parse(typeof(T), name));
-            stream.WriteRaw(name.Length);
-            stream.Write(Encoding.ASCII.GetBytes(name));
+            writer.Write((byte)(int)Enum.Parse(typeof(T), name));
+            writer.Write(name.Length);
+            writer.Write(Encoding.ASCII.GetBytes(name));
         }
     }
 
@@ -33,7 +33,7 @@ sealed class Perf<T>:IDisposable where T : struct, Enum {
             *(long*)p = Stopwatch.GetTimestamp();
             p[sizeof(long)] = 0;
         }
-        stream.Write(bytes);
+        writer.Write(bytes);
     }
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -44,17 +44,17 @@ sealed class Perf<T>:IDisposable where T : struct, Enum {
             *(long*)p = Stopwatch.GetTimestamp();
             p[sizeof(long)] = (byte)id;
         }
-        stream.Write(bytes);
+        writer.Write(bytes);
     }
 
     private bool disposed;
-    private readonly Stream stream;
+    private readonly BinaryWriter writer;
 
     private void Dispose (bool disposing) {
         if (disposed)
             return;
         if (disposing)
-            stream.Dispose();
+            writer.Dispose();
         disposed = true;
     }
 

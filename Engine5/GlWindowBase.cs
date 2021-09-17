@@ -18,6 +18,8 @@ class GlWindowBase:IDisposable {
         Swap,
         Camera,
         CursorPosition,
+        Noise,
+        Texture,
     }
 
     unsafe private GlWindowBase (int width, int height, Monitor monitor) {
@@ -55,19 +57,26 @@ class GlWindowBase:IDisposable {
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #endif
-
     protected long GetTicks () => Stopwatch.GetTimestamp() - startTicks;
-    protected Camera Camera { get; } = new Camera(new());
+    protected Camera Camera { get; } = new Camera(new(0f, 0f, 4f));
 
-    private const float _DESIRED_FRAMERATE = 100.0f;
-    private static readonly float FRAME_DURATION = 1.0f / _DESIRED_FRAMERATE;
-    private static readonly long EXPECTED_TICKS_PER_FRAME = (long)(Stopwatch.Frequency / _DESIRED_FRAMERATE);
+    private int desiredFramerate = 80;
+    private float FrameDuration => 1.0f / desiredFramerate;
+    private long ExpectedTicksPerFrame => (long)((double)Stopwatch.Frequency / desiredFramerate);
     private long startTicks;
     private long lastSwapTicks = 0l;
     private readonly bool isFullscreen;
     private readonly Dictionary<Keys, Action<Keys, InputState>> keys = new();
 #if __PERF__
-    protected readonly Perf<Events> perf = new("log.bin");
+    private readonly Perf<Events> perf = new("log.bin");
+#if !DEBUG
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+#endif
+    protected void Enter (Events e) => perf.Enter((int)e);
+#if !DEBUG
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+#endif
+    protected void Leave () => perf.Leave();
 #endif
     public void Run () {
         Glfw.GetCursorPosition(Window, out var mx, out var my);
@@ -90,19 +99,21 @@ class GlWindowBase:IDisposable {
     }
     private void Render () {
 #if __PERF__
-        perf.Enter((int)Events.Render);
+        Enter(Events.Render);
 #endif
         if (Focused && CursorGrabbed)
-            Camera.Move(10f * FRAME_DURATION);
-        Render(FRAME_DURATION);
+            Camera.Move(10f * FrameDuration);
+        Render(FrameDuration);
+        Calls.Finish();
         DelayForRetrace();
 #if __PERF__
-        perf.Enter((int)Events.Swap);
+        Enter(Events.Swap);
 #endif
+        //Calls.Flush();
         Glfw.SwapBuffers(Window);
 #if __PERF__
-        perf.Leave();
-        perf.Leave();
+        Leave();
+        Leave();
 #endif
         lastSwapTicks = GetTicks();
         ++FramesRendered;
@@ -110,14 +121,14 @@ class GlWindowBase:IDisposable {
 
     private void DelayForRetrace () {
 #if __PERF__
-        perf.Enter((int)Events.Delay);
+        Enter(Events.Delay);
 #endif
-        var delayed = lastSwapTicks + EXPECTED_TICKS_PER_FRAME / 2;
+        var delayed = lastSwapTicks + ExpectedTicksPerFrame;
         do {
             Glfw.PollEvents();
         } while (GetTicks() < delayed);
 #if __PERF__
-        perf.Leave();
+        Leave();
 #endif
     }
 
@@ -148,7 +159,14 @@ class GlWindowBase:IDisposable {
         if (state == InputState.Release)
             OnCloseInternal(Window);
     }
-
+    [KeyBinding(Keys.PageDown, Keys.PageUp)]
+    protected void AlterFramerate (Keys k, InputState state) {
+        if (state != InputState.Release)
+            return;
+        var fr = desiredFramerate;
+        fr += (k == Keys.PageUp) ? 10 : -10;
+        desiredFramerate = Math.Max(50, Math.Min(fr, 140));
+    }
     [KeyBinding(Keys.Tab)]
     protected void ToggleCursorGrabbed (Keys _, InputState state) {
         if (state == InputState.Release && !isFullscreen)
@@ -233,7 +251,7 @@ class GlWindowBase:IDisposable {
     private Vector2i lastMousePosition;
     private void OnCursorPosition (Window _, double x, double y) {
 #if __PERF__
-        perf.Enter((int)Events.CursorPosition);
+        Enter(Events.CursorPosition);
 #endif
         var delta = new Vector2i(Convert.ToInt32(x), Convert.ToInt32(y));
         var mouseDelta = delta - lastMousePosition;
@@ -241,7 +259,7 @@ class GlWindowBase:IDisposable {
             Camera.Mouse(mouseDelta);
         lastMousePosition = delta;
 #if __PERF__
-        perf.Leave();
+        Leave();
 #endif
     }
 

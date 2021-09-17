@@ -1,4 +1,5 @@
 namespace GLFW;
+using System;
 
 /// <summary>
 ///     Describes joystick hat states.

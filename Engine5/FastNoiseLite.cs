@@ -286,7 +286,11 @@ public class FastNoiseLite {
     /// </remarks>
     public void SetDomainWarpAmp (float domainWarpAmp) { mDomainWarpAmp = domainWarpAmp; }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
     public byte GetByte (FNLfloat x, FNLfloat y) => (byte)(GetNoise(x, y) * 127.5f + 127.5f);
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+    public int GetInt (FNLfloat x, FNLfloat y) => (int)(GetNoise(x, y) * 127.5f + 127.5f) & 0xFF;
+
     /// <summary>
     /// 2D noise at given position using current settings
     /// </summary>

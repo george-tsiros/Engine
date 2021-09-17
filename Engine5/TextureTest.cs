@@ -27,7 +27,7 @@ class TextureTest:GlWindowBase {
         var projection = Matrix4x4.CreatePerspectiveFieldOfView((float)(Math.PI / 4), (float)Width / Height, 1f, 100f);
 
         quad = new();
-        tex = Sampler2D.FromFile("untitled.raw");
+        tex = Sampler2D.FromFile("skybox.raw");
         tex.Mag = MagFilter.Linear;
         tex.Min = MinFilter.LinearMipMapLinear;
         tex.Wrap = Wrap.ClampToEdge;

@@ -1,7 +1,9 @@
 ﻿namespace GLFW;
 
+using System;
 using System.Runtime.InteropServices;
 using System.Security;
+
 [SuppressUnmanagedCodeSecurity]
 public static class Native {
     [DllImport(Glfw.LIBRARY, EntryPoint = "glfwGetWGLContext", CallingConvention = CallingConvention.Cdecl)]

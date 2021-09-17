@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System;
 using Gl;
+
 public abstract class Vao {
     public int Id { get; } = Gl.Calls.CreateVertexArray();
     protected abstract void Draw ();

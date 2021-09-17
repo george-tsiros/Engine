@@ -10,15 +10,14 @@ public class Sampler2D:IDisposable {
     public int Height { get; }
     public TextureInternalFormat SizedFormat { get; }
     public static implicit operator int (Sampler2D sampler) => sampler.Id;
-    private MagFilter mag;
-    private MinFilter min;
-    private bool disposed;
-    private Wrap wrap;
+
     public void BindTo (int t) {
         Debug.Assert(!disposed);
         State.ActiveTexture = t;
         BindTexture(Const.TEXTURE_2D, Id);
     }
+
+    private Wrap wrap;
     public Wrap Wrap {
         get => wrap;
         set {
@@ -28,6 +27,8 @@ public class Sampler2D:IDisposable {
             TextureWrap(Id, WrapCoordinate.WrapT, value);
         }
     }
+    
+    private MinFilter min;
     public MinFilter Min {
         get => min;
         set {
@@ -36,6 +37,7 @@ public class Sampler2D:IDisposable {
         }
     }
 
+    private MagFilter mag;
     public MagFilter Mag {
         get => mag;
         set {
@@ -43,6 +45,7 @@ public class Sampler2D:IDisposable {
             TextureFilter(Id, mag = value);
         }
     }
+
     private Sampler2D () => Id = CreateTexture2D();
     public Sampler2D (int width, int height, TextureInternalFormat sizedFormat) : this() {
         (Width, Height, SizedFormat) = (width, height, sizedFormat);
@@ -66,6 +69,7 @@ public class Sampler2D:IDisposable {
     private static TextureInternalFormat SizedFormatWith (int channels) => 1 <= channels && channels <= 4 ? sizedFormats[channels - 1] : throw new ApplicationException();
     private static int FormatWith (int channels) => 1 <= channels && channels <= 4 ? formats[channels - 1] : throw new ApplicationException();
 
+    private bool disposed;
     private void Dispose (bool disposing) {
         if (!disposed) {
             if (disposing)

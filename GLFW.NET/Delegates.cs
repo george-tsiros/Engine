@@ -1,5 +1,6 @@
 ﻿namespace GLFW;
 
+using System;
 using System.Runtime.InteropServices;
 /// <summary>
 ///     Function signature for receiving error callbacks.

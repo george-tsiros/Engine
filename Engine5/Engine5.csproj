@@ -18,7 +18,7 @@
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-        <DefineConstants>DEBUG;TRACE;__PERF__</DefineConstants>
+        <DefineConstants>DEBUG;TRACE;</DefineConstants>
         <Optimize>false</Optimize>
     </PropertyGroup>
 
@@ -51,7 +51,7 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="font.raw">
-            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="hints.txt">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

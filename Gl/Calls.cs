@@ -52,7 +52,7 @@ unsafe public static class Calls {
     private static readonly delegate* unmanaged[Cdecl]<int, int, byte**, int*, void> glShaderSource;
     private static readonly delegate* unmanaged[Cdecl]<int, int, int, void> glTextureParameteri;
     private static readonly delegate* unmanaged[Cdecl]<int, int, TextureInternalFormat, int, int, void> glTextureStorage2D;
-    private static readonly delegate* unmanaged[Cdecl]<int, int, int, int, int, int, int, int, byte*, void> glTextureSubImage2D;
+    private static readonly delegate* unmanaged[Cdecl]<int, int, int, int, int, int, int, int, void*, void> glTextureSubImage2D;
     private static readonly delegate* unmanaged[Cdecl]<int, int, void> glUniform1i;
     private static readonly delegate* unmanaged[Cdecl]<int, float, void> glUniform1f;
     private static readonly delegate* unmanaged[Cdecl]<int, float, float, void> glUniform2f;
@@ -62,6 +62,8 @@ unsafe public static class Calls {
     private static readonly delegate* unmanaged[Cdecl]<int, int, void> glVertexAttribDivisor;
     private static readonly delegate* unmanaged[Cdecl]<int, int, AttribType, bool, int, long, void> glVertexAttribPointer;
     private static readonly delegate* unmanaged[Cdecl]<int, int, int, int, void> glViewport;
+    private static readonly delegate* unmanaged[Cdecl]<void> glFlush;
+    private static readonly delegate* unmanaged[Cdecl]<void> glFinish;
 
 #pragma warning disable CS0169
     private static readonly delegate* unmanaged[Cdecl]<int, bool> glIsBuffer;
@@ -82,8 +84,6 @@ unsafe public static class Calls {
     private static readonly delegate* unmanaged[Cdecl]<Primitive, long, void> glDrawArraysIndirect;
     private static readonly delegate* unmanaged[Cdecl]<int, Attachment*, void> glDrawBuffers;
     private static readonly delegate* unmanaged[Cdecl]<int, int, void> glDisableVertexArrayAttrib;
-    private static readonly delegate* unmanaged[Cdecl]<void> glFlush;
-    private static readonly delegate* unmanaged[Cdecl]<void> glFinish;
     private static readonly delegate* unmanaged[Cdecl]<int, int, int, int, int, int, int, int, void*, void> glTexImage2D;
     private static readonly delegate* unmanaged[Cdecl]<int, int, int, int, int, int, int, int, void*, void> glTexSubImage2D;
     private static readonly delegate* unmanaged[Cdecl]<int, int, float, void> glTextureParameterf;
@@ -131,7 +131,7 @@ unsafe public static class Calls {
     public static void TextureFilter (int texture, MinFilter filter) => glTextureParameteri(texture, Const.TEXTURE_MIN_FILTER, (int)filter);
     public static void TextureMaxLevel (int texture, int level) => glTextureParameteri(texture, Const.TEXTURE_MAX_LEVEL, level);
     public static void TextureStorage2D (int texture, int levels, TextureInternalFormat sizedFormat, int width, int height) => glTextureStorage2D(texture, levels, sizedFormat, width, height);
-    public static void TextureSubImage2D (int texture, int level, int xOffset, int yOffset, int width, int height, int format, int type, byte* pixels) => glTextureSubImage2D(texture, level, xOffset, yOffset, width, height, format, type, pixels);
+    public static void TextureSubImage2D (int texture, int level, int xOffset, int yOffset, int width, int height, int format, int type, void* pixels) => glTextureSubImage2D(texture, level, xOffset, yOffset, width, height, format, type, pixels);
     public static void TextureWrap (int texture, WrapCoordinate c, Wrap w) => glTextureParameteri(texture, (int)c, (int)w);
     public static void Uniform (int uniform, float f) => glUniform1f(uniform, f);
     public static void Uniform (int uniform, int i) => glUniform1i(uniform, i);
@@ -142,6 +142,8 @@ unsafe public static class Calls {
     public static void VertexAttribDivisor (int index, int divisor) => glVertexAttribDivisor(index, divisor);
     public static void VertexAttribPointer (int index, int size, AttribType type, bool normalized, int stride, long ptr) => glVertexAttribPointer(index, size, type, normalized, stride, ptr);
     public static void Viewport (int x, int y, int w, int h) => glViewport(x, y, w, h);
+    public static void Flush () => glFlush();
+    public static void Finish () => glFinish();
 
     public static int GetAttribLocation (int program, string name) {
         Span<byte> bytes = stackalloc byte[name.Length + 1];

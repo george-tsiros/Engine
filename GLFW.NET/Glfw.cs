@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
+using System;
 /// <summary>
 ///     The base class the vast majority of the GLFW functions, excluding only Vulkan and native platform specific
 ///     functions.

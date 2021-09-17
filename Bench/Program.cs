@@ -1,5 +1,7 @@
 namespace Bench;
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Diagnostics;
 #if !DEBUG
 using System.Runtime.CompilerServices;
@@ -57,7 +59,7 @@ class Program {
     }
 
     static void Main () {
-        Bench_Binary_Actual("test.bin");
+        Bench_BinaryWriter("test.bin");
         File.Delete("test.bin");
         _ = Console.ReadLine();
     }
@@ -84,6 +86,55 @@ class Program {
     private static void Bench_Binary_Null () {
         Trace();
         Bench_Binary(Stream.Null);
+    }
+    private static void Bench_BinaryWriter (string filename, long count = 1000000l) {
+        Trace();
+        using BinaryWriter writer = new BinaryWriter(File.Create(filename));
+        var kinds = new Kind[count];
+        var longs = new long[count];
+        var strings = new string[count];
+        var foos = new FooEnum[count];
+        var r = new Random();
+        var results = new List<BenchResult>();
+        do {
+            for (var i = 0; i < count; ++i) {
+                kinds[i] = (Kind)r.Next(0, 3);
+                longs[i] = r.NextInt64(1_000_000, 1_000_000_000);
+                strings[i] = r.Next(2) == 1 ? RandomString(r) : null;
+                foos[i] = (FooEnum)r.Next(0, 4);
+            }
+            var (t0, t1) = (0l, 0l);
+            t0 = Stopwatch.GetTimestamp();
+            for (var i = 0; i < count; ++i)
+                WithBinaryWriterSimplest(writer, longs[i], (int)foos[i]);
+            t1 = Stopwatch.GetTimestamp();
+            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "FooEnum :")));
+
+            t0 = Stopwatch.GetTimestamp();
+            for (var i = 0; i < count; ++i)
+                WithBinaryWriterUnsafe(writer, longs[i], (int)foos[i]);
+            t1 = Stopwatch.GetTimestamp();
+            results.Add(new(1.0 / (t1 - t0), Format(t1 - t0, count, "FooEnum :")));
+
+
+            //results.Sort();
+            Console.WriteLine(string.Join("\n", results));
+            Console.WriteLine();
+            results.Clear();
+
+        } while (!Console.KeyAvailable);
+    }
+    unsafe private static void WithBinaryWriterUnsafe (BinaryWriter writer, long int64, int int32) {
+        Span<byte> bytes = stackalloc byte[sizeof(long) + sizeof(byte)];
+        fixed (byte* p = bytes) {
+            *(long*)p = int64;
+            p[+sizeof(long)] = (byte)int32;
+        }
+        writer.Write(bytes);
+    }
+    private static void WithBinaryWriterSimplest (BinaryWriter writer, long int64, int int32) {
+        writer.Write(int64);
+        writer.Write((byte)int32);
     }
     private static void Bench_Binary_Actual (string filename) {
         Trace();
@@ -172,11 +223,11 @@ class Program {
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    unsafe static private void SimplestPossible (Stream stream, long int64, int id) {
-        Span<byte> bytes = stackalloc byte[sizeof(long) + sizeof(int)];
+    unsafe static private void SimplestPossible (Stream stream, long int64, int int32) {
+        Span<byte> bytes = stackalloc byte[sizeof(long) + sizeof(byte)];
         fixed (byte* p = bytes) {
             *(long*)p = int64;
-            p[+sizeof(long)] = (byte)id;
+            p[+sizeof(long)] = (byte)int32;
         }
         stream.Write(bytes);
     }

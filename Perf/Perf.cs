@@ -18,15 +18,15 @@
         private readonly List<(int eventIndex, int maxDepth)> FrameInfo = new List<(int, int)>();
 
         private Perf (string filepath) {
-            using (var stream = File.OpenRead(filepath)) {
-                var enumCount = stream.GetInt32();
+            using (var reader = new BinaryReader(File.OpenRead(filepath))) {
+                var enumCount = reader.ReadInt32();
                 Names = new string[enumCount];
                 Values = new int[enumCount];
                 for (var i = 0; i < Names.Length; ++i) {
-                    Values[i] = stream.GetByte();
-                    Names[i] = stream.GetString();
+                    Values[i] = reader.ReadByte();
+                    Names[i] = reader.GetString();
                 }
-                while (Entry.FromStream(stream) is Entry entry)
+                while (Entry.FromBinaryReader(reader) is Entry entry)
                     Entries.Add(entry);
             }
 
@@ -118,6 +118,7 @@
                 g.Clear(Color.Transparent);
             DrawBackgroundImage();
         }
+
         private void DrawBackgroundImage () {
             using (var g = DrawAndClear(picture.BackgroundImage, Color.Black)) {
                 var eventIndex = FrameInfo[FrameIndex].eventIndex;
@@ -158,6 +159,7 @@
             if (rem != 0)
                 Debug.WriteLine($"rem : {rem}");
             scaleExponent = Math.Max(minimumExponent, Math.Min(scaleExponent - 0.2f * wheelSteps, maximumExponent));
+            Text = WindowSeconds.ToString();
             DrawDetailRectangle(args.X);
         }
 
@@ -241,6 +243,7 @@
             public readonly int E;
             private Entry (long ticks, int e) => (Ticks, E) = (ticks, e);
             public static Entry FromStream (Stream stream) => stream.TryRead(out long l) && stream.TryRead(out byte b) ? new Entry(l, b) : null;
+            public static Entry FromBinaryReader (BinaryReader reader) => reader.TryRead(out long l) && reader.TryRead(out byte b) ? new Entry(l, b) : null;
             public bool IsEnter => E != 0;
         }
 

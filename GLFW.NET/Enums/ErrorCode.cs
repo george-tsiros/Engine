@@ -1,5 +1,6 @@
 ﻿namespace GLFW;
 
+using System;
 /// <summary>
 ///     Strongly-typed error codes for error handling.
 /// </summary>

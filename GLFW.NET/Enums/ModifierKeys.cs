@@ -1,4 +1,5 @@
 ﻿namespace GLFW;
+using System;
 
 /// <summary>
 ///     Describes bitwise combination of modifier keys.

@@ -14,7 +14,7 @@ enum Capability {
     StencilTest = GL_STENCIL_TEST,
 };
 HGLRC ctx;
-int WinMain(__in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in_opt LPSTR lpCmdLine, __in int nShowCmd) {
+int __stdcall WinMain(__in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in_opt LPSTR lpCmdLine, __in int nShowCmd) {
     MSG msg = { 0 };
     WNDCLASS wc = { 0 };
     wc.lpfnWndProc = WndProc;
@@ -82,9 +82,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         HDC hdc = GetDC(hWnd);
 
-        int  aPixelFormat;
-        aPixelFormat = ChoosePixelFormat(hdc, &pfd);
-        SetPixelFormat(hdc, aPixelFormat, &pfd);
+        int  somePixelFormat;
+        somePixelFormat = ChoosePixelFormat(hdc, &pfd);
+        SetPixelFormat(hdc, somePixelFormat, &pfd);
         ctx = wglCreateContext(hdc);
         wglMakeCurrent(hdc, ctx);
         ReleaseDC(hWnd, hdc);

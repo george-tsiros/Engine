@@ -1,5 +1,6 @@
 namespace Engine;
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
@@ -21,6 +22,11 @@ static class Geometry {
             v[i] *= s;
         return v;
     }
+    internal static Vector4[] Scale (Vector4[] v, Vector3 f) {
+        var scaled = new Vector4[v.Length];
+        Array.Copy(v, scaled, v.Length);
+        return ScaleInPlace(scaled, f);
+    }
     internal static Vector4[] ScaleInPlace (Vector4[] v, float f) => ScaleInPlace(v, new Vector4(f, f, f, 1));
     internal static Vector4[] ScaleInPlace (Vector4[] v, Vector3 f) => ScaleInPlace(v, new Vector4(f, 1));
 
@@ -31,7 +37,6 @@ static class Geometry {
             translated[i] = v[i] + t;
         return translated;
     }
-
     internal static Vector4[] TranslateInPlace (Vector4[] v, Vector3 d) {
         var t = new Vector4(d, 0);
         for (var i = 0; i < v.Length; ++i)
