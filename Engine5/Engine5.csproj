@@ -1,20 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <ApplicationIcon />
+        <LangVersion>preview</LangVersion>
+        <NoWarn>1701;1702;CS0078</NoWarn>
+        <OutputPath>bin</OutputPath>
         <OutputType>Exe</OutputType>
+        <PlatformTarget>x64</PlatformTarget>
+        <ProduceReferenceAssemblies>false</ProduceReferenceAssemblies>
+        <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+        <StartupObject />
         <TargetFramework>net6.0</TargetFramework>
         <UseWindowsForms>false</UseWindowsForms>
-        <LangVersion>preview</LangVersion>
-        <PlatformTarget>x64</PlatformTarget>
-        <NoWarn>1701;1702;CS0078</NoWarn>
-        <OutputPath>..\bin</OutputPath>
-        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <ApplicationIcon />
-        <ProduceReferenceAssemblies>false</ProduceReferenceAssemblies>
-        <StartupObject />
-        <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -65,7 +65,7 @@
     </ItemGroup>
 
     <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-        <Exec Command="&quot;C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe&quot; skybox.png font.png checkered.png untitled.png" />
+        <Exec Command="C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe skybox.png font.png checkered.png untitled.png" />
     </Target>
 
 </Project>
