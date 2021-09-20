@@ -15,6 +15,14 @@ public static class Utilities {
             Console.WriteLine(formatted);
     }
 
+    public static void CycleThrough<T> (ref T value, bool backwards = false) where T : struct,Enum {
+        var values = Enum.GetValues<T>();
+        var i = Array.IndexOf(values, value)+1;
+        if (i == values.Length)
+            i = 0;
+        value = values[i];
+    }
+
     private static string TraceFormat (string message) => $"{DateTime.Now:mm:ss.fff}> {Method(2)} {message}";
 
     public static FieldInfo GetBackingField (Type type, PropertyInfo prop, BindingFlags flags = BindingFlags.Instance) => type.GetField($"<{prop.Name}>k__BackingField", BindingFlags.NonPublic | flags);

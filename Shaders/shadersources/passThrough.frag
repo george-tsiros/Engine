@@ -8,6 +8,5 @@ uniform sampler2D tex;
 out vec4 out0;
 
 void main () { 
-    vec4 c = texture(tex, not_FragPos);
-    out0 = vec4(c.rgb, 1.0);
+    out0 = texture(tex, not_FragPos);
 }

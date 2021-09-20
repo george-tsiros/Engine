@@ -18,7 +18,7 @@ class NeinCraft:GlWindowBase {
 
     private VertexArray cubeVao;
     private VertexBuffer<Vector4> cubeVertices;
-    //private Matrix4x4[] models = new Matrix4x4[_modelCount];
+
     protected override void Init () {
         State.Program = SkyBox.Id;
         skyboxVao = new();
@@ -42,7 +42,7 @@ class NeinCraft:GlWindowBase {
     protected override void Render (float dt) {
         Viewport(0, 0, Width, Height);
         Clear(BufferBit.Color | BufferBit.Depth);
-        theta += 1.1 * dt;
+        theta += 1.8 * dt;
         if (theta > 2.0 * Math.PI)
             theta -= 2.0 * Math.PI;
         State.DepthTest = true;
@@ -52,12 +52,12 @@ class NeinCraft:GlWindowBase {
         SolidColor.View(Camera.LookAtMatrix);
         SolidColor.Model(Matrix4x4.CreateTranslation(new(2f * (float)Math.Sin(theta), 2f * (float)Math.Cos(theta), -3f)));
         DrawArrays(Primitive.Triangles, 0, 36);
-        //State.Program = SkyBox.Id;
-        //State.VertexArray = skyboxVao;
-        //State.DepthFunc = DepthFunction.LessEqual;
-        //skyboxTexture.BindTo(0);
-        //SkyBox.View(Camera.RotationOnly);
-        //DrawArrays(Primitive.Triangles, 0, 36);
+        State.Program = SkyBox.Id;
+        State.VertexArray = skyboxVao;
+        State.DepthFunc = DepthFunction.LessEqual;
+        skyboxTexture.BindTo(0);
+        SkyBox.View(Camera.RotationOnly);
+        DrawArrays(Primitive.Triangles, 0, 36);
     }
 
     protected override void OnClose () {

@@ -9,7 +9,6 @@ using System.IO.Compression;
 using System.Runtime.InteropServices;
 class BitmapToRaster {
     private static bool IsValid (string filepath) => File.Exists(filepath) && Path.GetFileName(filepath).ToLower().EndsWith(".png");
-    private static void Write (Stream self, int i) => self.Write(BitConverter.GetBytes(i), 0, sizeof(int));
     private static void Main (string[] args) => Array.ForEach(Array.FindAll(args, IsValid), ConvertFrom);
 
     private static void ConvertFrom (string filepath) {
@@ -24,13 +23,14 @@ class BitmapToRaster {
             b.UnlockBits(l);
             var name = Path.GetFileNameWithoutExtension(filepath);
             var dir = Path.GetDirectoryName(filepath);
-            using (var f = File.Create(Path.Combine(dir, $"{name}.raw"))) {
-                Write(f, b.Width);
-                Write(f, b.Height);
-                Write(f, channels);
-                Write(f, bytesPerChannel);
-                Write(f, bytes.Length);
-                using (var zip = new GZipStream(f, CompressionLevel.Optimal))
+            using (var f = new BinaryWriter(File.Create(Path.Combine(dir, $"{name}.raw")))) {
+                Console.WriteLine($"{filepath}: {b.Width}x{b.Height}, {channels} channels, {bytes.Length} bytes");
+                f.Write(b.Width);
+                f.Write(b.Height);
+                f.Write(channels);
+                f.Write(bytesPerChannel);
+                f.Write(bytes.Length);
+                using (var zip = new DeflateStream(f.BaseStream, CompressionLevel.Optimal))
                     zip.Write(bytes, 0, bytes.Length);
             }
         }

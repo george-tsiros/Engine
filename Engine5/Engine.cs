@@ -9,12 +9,11 @@ class Engine {
 
     [STAThread]
     static void Main () {
-        Debug.Assert(Marshal.SizeOf<WindowsStuff.OsVersionInfoExW>() == 5 * sizeof(int) + 128 * sizeof(ushort) + 3 * sizeof(short) + 2 * sizeof(byte));
-
+        //MouseInputTest.TestMouseInput();
 
         if (File.Exists("hints.txt"))
             Extra.SetHintsFrom("hints.txt");
-        using var f = new NeinCraft(GLFW.Glfw.PrimaryMonitor);
+        using var f = new TextureTest(1280,720);
         f.Run();
     }
 }

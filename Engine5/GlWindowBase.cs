@@ -78,12 +78,12 @@ class GlWindowBase:IDisposable {
 #endif
     protected void Leave () => perf.Leave();
 #endif
+
     public void Run () {
         Glfw.GetCursorPosition(Window, out var mx, out var my);
         lastMousePosition = new(Convert.ToInt32(mx), Convert.ToInt32(my));
         State.LineSmooth = true;
         State.Dither = false;
-
         Glfw.ShowWindow(Window);
         OnWindowFocus(Window, Glfw.GetWindowAttribute(Window, WindowAttribute.Focused));
         CursorGrabbed = isFullscreen;
@@ -152,6 +152,7 @@ class GlWindowBase:IDisposable {
         if (state != InputState.Release)
             return;
         SwapInterval = SwapInterval == 1 ? -1 : SwapInterval + 1;
+        Utilities.Trace($"{nameof(SwapInterval)}: {SwapInterval}");
     }
 
     [KeyBinding(Keys.Escape)]
@@ -166,11 +167,14 @@ class GlWindowBase:IDisposable {
         var fr = desiredFramerate;
         fr += (k == Keys.PageUp) ? 10 : -10;
         desiredFramerate = Math.Max(50, Math.Min(fr, 140));
+        Utilities.Trace($"{nameof(desiredFramerate)}: {desiredFramerate}");
     }
     [KeyBinding(Keys.Tab)]
     protected void ToggleCursorGrabbed (Keys _, InputState state) {
-        if (state == InputState.Release && !isFullscreen)
+        if (state == InputState.Release && !isFullscreen) {
             CursorGrabbed = !CursorGrabbed;
+            Utilities.Trace($"{nameof(CursorGrabbed)}: {CursorGrabbed}");
+        }
     }
 
 #pragma warning disable IDE0052 // Remove unread private members

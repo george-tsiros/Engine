@@ -64,6 +64,7 @@ unsafe public static class Calls {
     private static readonly delegate* unmanaged[Cdecl]<int, int, int, int, void> glViewport;
     private static readonly delegate* unmanaged[Cdecl]<void> glFlush;
     private static readonly delegate* unmanaged[Cdecl]<void> glFinish;
+    private static readonly delegate* unmanaged[Cdecl]<int, int, void> glBlendFunc;
 
 #pragma warning disable CS0169
     private static readonly delegate* unmanaged[Cdecl]<int, bool> glIsBuffer;
@@ -105,6 +106,7 @@ unsafe public static class Calls {
     public static void BindFramebuffer (int target, int buffer) => glBindFramebuffer((int)target, buffer);
     public static void BindTexture (int target, int texture) => glBindTexture(target, texture);
     public static void BindVertexArray (int vao) => glBindVertexArray(vao);
+    public static void BlendFunc (BlendSourceFactor sfactor, BlendDestinationFactor dfactor) => glBlendFunc((int)sfactor, (int)dfactor);
     public static void Clear (BufferBit mask) => glClear(mask);
     public static void ClearColor (float r, float g, float b, float a) => glClearColor(r, g, b, a);
     public static void CompileShader (int s) => glCompileShader(s);
@@ -131,7 +133,7 @@ unsafe public static class Calls {
     public static void TextureFilter (int texture, MinFilter filter) => glTextureParameteri(texture, Const.TEXTURE_MIN_FILTER, (int)filter);
     public static void TextureMaxLevel (int texture, int level) => glTextureParameteri(texture, Const.TEXTURE_MAX_LEVEL, level);
     public static void TextureStorage2D (int texture, int levels, TextureInternalFormat sizedFormat, int width, int height) => glTextureStorage2D(texture, levels, sizedFormat, width, height);
-    public static void TextureSubImage2D (int texture, int level, int xOffset, int yOffset, int width, int height, int format, int type, void* pixels) => glTextureSubImage2D(texture, level, xOffset, yOffset, width, height, format, type, pixels);
+    public static void TextureSubImage2D (int texture, int level, int xOffset, int yOffset, int width, int height, TextureFormat format, int type, void* pixels) => glTextureSubImage2D(texture, level, xOffset, yOffset, width, height, (int)format, type, pixels);
     public static void TextureWrap (int texture, WrapCoordinate c, Wrap w) => glTextureParameteri(texture, (int)c, (int)w);
     public static void Uniform (int uniform, float f) => glUniform1f(uniform, f);
     public static void Uniform (int uniform, int i) => glUniform1i(uniform, i);

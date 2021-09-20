@@ -65,9 +65,9 @@ public class Sampler2D:IDisposable {
         return texture;
     }
     private static readonly TextureInternalFormat[] sizedFormats = { TextureInternalFormat.R8, TextureInternalFormat.Rg8, TextureInternalFormat.Rgb8, TextureInternalFormat.Rgba8 };
-    private static readonly int[] formats = { Const.RED, Const.RG, Const.BGR, Const.BGRA };
+    private static readonly TextureFormat[] formats = { TextureFormat.Red, TextureFormat.Rg, TextureFormat.Bgr, TextureFormat.Bgra };
     private static TextureInternalFormat SizedFormatWith (int channels) => 1 <= channels && channels <= 4 ? sizedFormats[channels - 1] : throw new ApplicationException();
-    private static int FormatWith (int channels) => 1 <= channels && channels <= 4 ? formats[channels - 1] : throw new ApplicationException();
+    private static TextureFormat FormatWith (int channels) => 1 <= channels && channels <= 4 ? formats[channels - 1] : throw new ApplicationException();
 
     private bool disposed;
     private void Dispose (bool disposing) {

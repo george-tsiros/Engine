@@ -14,17 +14,17 @@ enum Capability {
     StencilTest = GL_STENCIL_TEST,
 };
 HGLRC ctx;
-int __stdcall WinMain(__in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in_opt LPSTR lpCmdLine, __in int nShowCmd) {
+int WINAPI WinMain(__in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in_opt LPSTR lpCmdLine, __in int nShowCmd) {
     MSG msg = { 0 };
     WNDCLASS wc = { 0 };
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
-    wc.hbrBackground = (HBRUSH)(COLOR_BACKGROUND);
+    wc.hbrBackground = (HBRUSH)(BLACK_BRUSH);
     wc.lpszClassName = L"oglversionchecksample";
     wc.style = CS_OWNDC;
     if (!RegisterClass(&wc))
         return 1;
-    CreateWindowW(wc.lpszClassName, L"openglversioncheck", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 0, 0, 640, 480, 0, 0, hInstance, 0);
+    CreateWindow(wc.lpszClassName, L"openglversioncheck", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 0, 0, 640, 480, 0, 0, hInstance, 0);
 
     while (running) {
         while (GetMessage(&msg, NULL, 0, 0) > 0)
@@ -33,29 +33,28 @@ int __stdcall WinMain(__in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     wglDeleteContext(ctx);
-
     return 0;
 }
-Capability AllCapabilities[] = {
-    Capability::Blend,
-    Capability::CullFace,
-    Capability::LineSmooth,
-    Capability::StencilTest,
-    Capability::Dither,
-    Capability::DepthTest,
-};
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
+    case WM_DESTROY:
+    {
+        PostQuitMessage(0);
+        running = 0;
+    }
+    break;
     case WM_KEYUP:
     {
-        running = 0;
-       //GLboolean enabled = glIsEnabled(GL_DEPTH_TEST);
-       //if (enabled)
-       //    glDisable(GL_DEPTH_TEST);
-       //else
-       //    glEnable(GL_DEPTH_TEST);
-       //if (enabled == glIsEnabled(GL_DEPTH_TEST))
-       //    DebugBreak();
+        if (running && wParam == VK_ESCAPE)
+            running = 0;
+        //GLboolean enabled = glIsEnabled(GL_DEPTH_TEST);
+        //if (enabled)
+        //    glDisable(GL_DEPTH_TEST);
+        //else
+        //    glEnable(GL_DEPTH_TEST);
+        //if (enabled == glIsEnabled(GL_DEPTH_TEST))
+        //    DebugBreak();
     }
     break;
     case WM_CREATE:
@@ -64,17 +63,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         {
             sizeof(PIXELFORMATDESCRIPTOR),
             1,
-            PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    //Flags
-            PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
-            32,                   // Colordepth of the framebuffer.
+            PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+            PFD_TYPE_RGBA,        
+            32,                   
             0, 0, 0, 0, 0, 0,
             0,
             0,
             0,
             0, 0, 0, 0,
-            24,                   // Number of bits for the depthbuffer
-            8,                    // Number of bits for the stencilbuffer
-            0,                    // Number of Aux buffers in the framebuffer.
+            24,                   
+            8,                    
+            0,                    
             PFD_MAIN_PLANE,
             0,
             0, 0, 0
@@ -82,8 +81,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         HDC hdc = GetDC(hWnd);
 
-        int  somePixelFormat;
-        somePixelFormat = ChoosePixelFormat(hdc, &pfd);
+        int somePixelFormat = ChoosePixelFormat(hdc, &pfd);
         SetPixelFormat(hdc, somePixelFormat, &pfd);
         ctx = wglCreateContext(hdc);
         wglMakeCurrent(hdc, ctx);

@@ -64,7 +64,7 @@ class NoiseTest:GlWindowBase {
         countdown.Wait();
         countdown.Reset(_THREADCOUNT);
         fixed (byte* p = bytes)
-            TextureSubImage2D(tex, 0, 0, 0, tex.Width, tex.Height, Const.BGRA, Const.UNSIGNED_BYTE, p);
+            TextureSubImage2D(tex, 0, 0, 0, tex.Width, tex.Height, TextureFormat.Bgra, Const.UNSIGNED_BYTE, p);
 
         Viewport(0, 0, Width, Height);
         ClearColor(0f, 0f, 0f, 1f);

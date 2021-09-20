@@ -23,6 +23,10 @@ public sealed class State {
         }
     }
 
+    public static bool Blend {
+        get => IsEnabled(Capability.Blend);
+        set => MaybeToggle(Capability.Blend, value);
+    }
     public static bool DepthTest {
         get => IsEnabled(Capability.DepthTest);
         set => MaybeToggle(Capability.DepthTest, value);
