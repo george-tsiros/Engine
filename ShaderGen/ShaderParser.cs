@@ -26,6 +26,7 @@ class ShaderGen {
         try {
             foreach (var vertexShaderFilepath in Directory.EnumerateFiles(args[0], "*.vert")) {
                 var shaderName = UppercaseFirst(Path.GetFileNameWithoutExtension(vertexShaderFilepath));
+                Trace($"creating {shaderName}");
                 var fragmentShaderFilepath = Path.Combine(Path.GetDirectoryName(vertexShaderFilepath), shaderName + ".frag");
                 if (File.Exists(fragmentShaderFilepath)) {
                     var vertexShaderSource = File.ReadAllText(vertexShaderFilepath);
@@ -65,7 +66,6 @@ class ShaderGen {
     //static bool IsReserved (string name) => name == "float" || name == "double" || name == "byte" || name == "char";
     private static bool IsPrimitive (string name) => name == "float" || name == "double" || name == "byte" || name == "char";
     private static void DoProgram (int program, string className, StreamWriter f) {
-        Trace($"emitting {className}");
         f.Write($@"namespace Shaders;
 using Gl;
 using System.Numerics;

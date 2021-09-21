@@ -20,6 +20,9 @@ class GlWindowBase:IDisposable {
         CursorPosition,
         Noise,
         Texture,
+        Text,
+        LockBits,
+        Graphics,
     }
 
     unsafe private GlWindowBase (int width, int height, Monitor monitor) {
@@ -259,7 +262,7 @@ class GlWindowBase:IDisposable {
 #endif
         var delta = new Vector2i(Convert.ToInt32(x), Convert.ToInt32(y));
         var mouseDelta = delta - lastMousePosition;
-        if (Focused && CursorGrabbed)
+        if (CursorGrabbed)
             Camera.Mouse(mouseDelta);
         lastMousePosition = delta;
 #if __PERF__

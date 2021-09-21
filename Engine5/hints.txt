@@ -9,4 +9,3 @@ DoubleBuffer=false
 ContextVersionMajor=4
 ContextVersionMinor=6
 OpenglProfile=Profile.Core
-OpenglDebugContext=true

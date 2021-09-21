@@ -249,7 +249,7 @@
 
         [STAThread]
         static void Main (string[] args) {
-            using (var f = new Perf(args[0]))
+            using (var f = new Perf(Path.Combine(Directory.GetCurrentDirectory(), args[0])))
                 _ = f.ShowDialog();
         }
     }
