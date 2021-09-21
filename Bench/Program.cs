@@ -59,10 +59,21 @@ class Program {
     }
 
     static void Main () {
-        Bench_BinaryWriter("test.bin");
+        Console.WriteLine("press enter when debugger diagnostics wake up");
+        _ = Console.ReadLine();
+        Console.WriteLine("press any key to stop");
+        TestOneUseStringMemoryPressure(TextWriter.Null);
         File.Delete("test.bin");
         _ = Console.ReadLine();
     }
+
+    private static void TestOneUseStringMemoryPressure (TextWriter writer) {
+        var r = new Random();
+        while (!Console.KeyAvailable)
+        for (var i = 0; i < 1000; ++i)
+            writer.Write(RandomString(r));
+    }
+
     private static void Trace () => Console.WriteLine(new StackFrame(1).GetMethod().Name);
     private static void Bench_Actual_Stream (string filename) {
         Trace();
@@ -439,7 +450,7 @@ class Program {
     private static void Rep (long ticks, long count, string info = null) => Console.WriteLine(Format(ticks, count, info));
 
     private static string RandomString (Random r) {
-        var l = r.Next(5, 20);
+        var l = r.Next(5, 100);
         Span<byte> bytes = stackalloc byte[l];
         for (var i = 0; i < l; ++i)
             bytes[i] = (byte)r.Next(' ', '~');

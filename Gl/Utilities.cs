@@ -2,7 +2,6 @@ namespace Gl;
 
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 public static class Utilities {
@@ -15,12 +14,21 @@ public static class Utilities {
             Console.WriteLine(formatted);
     }
 
-    public static void CycleThrough<T> (ref T value, bool backwards = false) where T : struct,Enum {
+    public static void CycleThrough<T> (ref T value, bool backwards = false) where T : struct, Enum {
         var values = Enum.GetValues<T>();
-        var i = Array.IndexOf(values, value)+1;
-        if (i == values.Length)
-            i = 0;
-        value = values[i];
+        var index = Array.IndexOf(values, value);
+
+        if (backwards)
+            index--;
+        else
+            index++;
+
+        if (index >= values.Length)
+            index = 0;
+        else if (index < 0)
+            index = values.Length - 1;
+
+        value = values[index];
     }
 
     private static string TraceFormat (string message) => $"{DateTime.Now:mm:ss.fff}> {Method(2)} {message}";
