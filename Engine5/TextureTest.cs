@@ -36,9 +36,9 @@ class TextureTest:GlWindowBase {
 
         quad = new();
         State.Program = SimpleTexture.Id;
-        var quadBuffer = new VertexBuffer<Vector4>(Geometry.Quad);
+        var quadBuffer = new VertexBuffer<Vector4>(Quad.Vertices);
         quad.Assign(quadBuffer, SimpleTexture.VertexPosition);
-        quad.Assign(new VertexBuffer<Vector2>(Geometry.QuadUV), SimpleTexture.VertexUV);
+        quad.Assign(new VertexBuffer<Vector2>(Quad.Uv), SimpleTexture.VertexUV);
         var models = new Matrix4x4[] { Matrix4x4.Identity };
         quad.Assign(new VertexBuffer<Matrix4x4>(models), SimpleTexture.Model, 1);
         var clientSize = GetClientSize();
@@ -66,9 +66,9 @@ class TextureTest:GlWindowBase {
         skyboxTexture.Mag = MagFilter.Linear;
         skyboxTexture.Min = MinFilter.Linear;
         skyboxTexture.Wrap = Wrap.ClampToEdge;
-        skyboxVertices = new(Geometry.Dex(Geometry.Translate(Geometry.CubeVertices, -.5f * Vector3.One), Geometry.FlipWinding(Geometry.CubeIndices)));
+        skyboxVertices = new(Geometry.Dex(Geometry.Translate(Cube.Vertices, -.5f * Vector3.One), Geometry.FlipWinding(Cube.Indices)));
         skyboxVao.Assign(skyboxVertices, SkyBox.VertexPosition);
-        skyboxUV = new(Geometry.Dex(Geometry.CubeUVVectors, Geometry.FlipWinding(Geometry.CubeUVIndices)));
+        skyboxUV = new(Geometry.Dex(Cube.UvVectors, Geometry.FlipWinding(Cube.UvIndices)));
         skyboxVao.Assign(skyboxUV, SkyBox.VertexUV);
         SkyBox.Projection(projection);
     }

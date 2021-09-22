@@ -24,9 +24,9 @@ class NeinCraft:GlWindowBase {
         skyboxVao = new();
         skyboxTexture = Sampler2D.FromFile("skybox.raw");
         SkyBox.Tex(0);
-        skyboxVertices = new(Geometry.Dex(Geometry.Translate(Geometry.CubeVertices, -.5f * Vector3.One), Geometry.FlipWinding(Geometry.CubeIndices)));
+        skyboxVertices = new(Geometry.Dex(Geometry.Translate(Cube.Vertices, -.5f * Vector3.One), Geometry.FlipWinding(Cube.Indices)));
         skyboxVao.Assign(skyboxVertices, SkyBox.VertexPosition);
-        skyboxUV = new(Geometry.Dex(Geometry.CubeUVVectors, Geometry.FlipWinding(Geometry.CubeUVIndices)));
+        skyboxUV = new(Geometry.Dex(Cube.UvVectors, Geometry.FlipWinding(Cube.UvIndices)));
         skyboxVao.Assign(skyboxUV, SkyBox.VertexUV);
         var clientsize = GetClientSize();
 
@@ -35,7 +35,7 @@ class NeinCraft:GlWindowBase {
 
         State.Program = SolidColor.Id;
         cubeVao = new();
-        cubeVertices = new(Geometry.Dex(Geometry.Translate(Geometry.CubeVertices, -.5f * Vector3.One), Geometry.CubeIndices));
+        cubeVertices = new(Geometry.Dex(Geometry.Translate(Cube.Vertices, -.5f * Vector3.One), Cube.Indices));
         cubeVao.Assign(cubeVertices, SolidColor.VertexPosition);
         SolidColor.Color(new(1f, 1f, 1f, 1f));
         SolidColor.Projection(projection);
