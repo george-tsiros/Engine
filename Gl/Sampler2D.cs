@@ -6,8 +6,9 @@ using static Calls;
 
 public class Sampler2D:IDisposable {
     public int Id { get; }
-    public int Width { get; }
-    public int Height { get; }
+    private Vector2i Size { get; }
+    public int Width => Size.X;
+    public int Height => Size.Y;
     public TextureInternalFormat SizedFormat { get; }
     public static implicit operator int (Sampler2D sampler) => sampler.Id;
 
@@ -47,9 +48,9 @@ public class Sampler2D:IDisposable {
     }
 
     private Sampler2D () => Id = CreateTexture2D();
-    public Sampler2D (int width, int height, TextureInternalFormat sizedFormat) : this() {
-        (Width, Height, SizedFormat) = (width, height, sizedFormat);
-        TextureStorage2D(Id, 1, SizedFormat, width, height);
+    public Sampler2D (Vector2i size, TextureInternalFormat sizedFormat) : this() {
+        (Size, SizedFormat) = (size, sizedFormat);
+        TextureStorage2D(Id, 1, SizedFormat, Width, Height);
         TextureBaseLevel(Id, 0);
         TextureMaxLevel(Id, 0);
         Wrap = Wrap.ClampToEdge;
@@ -59,7 +60,7 @@ public class Sampler2D:IDisposable {
         if (raster.BytesPerChannel != 1)
             throw new ApplicationException();
 
-        var texture = new Sampler2D(raster.Width, raster.Height, SizedFormatWith(raster.Channels));
+        var texture = new Sampler2D(raster.Size, SizedFormatWith(raster.Channels));
         fixed (byte* ptr = raster.Pixels)
             TextureSubImage2D(texture.Id, 0, 0, 0, raster.Width, raster.Height, FormatWith(raster.Channels), Const.UNSIGNED_BYTE, ptr);
         return texture;

@@ -1,129 +1,135 @@
 ﻿namespace CsFwExample {
     using System;
-    using System.Runtime.InteropServices;
-    using GLFW;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Drawing;
+    using System.Windows.Forms;
+    using System.Collections.Generic;
 
-    enum Capability {
-        DepthTest = 0x0B71,
-        CullFace = 0x0B44,
-        Dither = 0x0BD0,
-        Blend = 0x0BE2,
-        LineSmooth = 0x0B20,
-        StencilTest = 0x0B90
-    }
-
-    class Program {
-        delegate void ClearColor (float r, float g, float b, float a);
-        delegate void Clear (int mask);
-        delegate bool IsEnabled (Capability capability);
-        delegate void Enable (Capability capability);
-        delegate void Disable (Capability capability);
-
-        static ClearColor glClearColor;
-        static Clear glClear;
-        static IsEnabled glIsEnabled;
-        static Enable glEnable;
-        static Disable glDisable;
-        static ErrorCallback onError;
-        static void OnError (ErrorCode code, IntPtr ptr) => throw new ApplicationException(Marshal.PtrToStringAnsi(ptr) ?? "?");
-
-        static KeyCallback onKey;
-        static void OnKey (IntPtr window, Keys key, int scanCode, InputState state, ModifierKeys mods) {
-            if (state == InputState.Release && key == Keys.Escape)
-                Glfw.SetWindowShouldClose(glfwWindow, true);
-        }
-        const int GL_DEPTH_BUFFER_BIT = 0x0100, GL_COLOR_BUFFER_BIT = 0x04000;
-        const int _WIDTH = 800, _HEIGHT = 600;
-
-        static Window glfwWindow;
-        static void GetDelegateFor<T> (ref T field, string name) where T : Delegate => field = Marshal.GetDelegateForFunctionPointer<T>(Glfw.GetProcAddress(name));
-        static void Dump (int i) {
-            Console.Write($"{framecount,-5} {i,-5}");
-            foreach (var c in AllCapabilities) {
-                Console.ForegroundColor = glIsEnabled(c) ? ConsoleColor.Green : ConsoleColor.Red;
-                Console.Write(c.ToString());
-                Console.Write(' ');
-            }
-            Console.ResetColor();
-            Console.WriteLine();
-        }
-        static int lastState;
-        static void MaybeDump (int i) {
-            var currentState = GetState();
-            if (currentState != lastState) {
-                Dump(i);
-                lastState = currentState;
+    class Program:Form {
+        private static IEnumerable<TimePoint> FromFile (string filename) {
+            using (var f = File.OpenRead("movements.bin")) {
+                f.Seek(sizeof(long), SeekOrigin.Begin);
+                while (f.Position != f.Length)
+                    yield return TimePoint.FromFileStream(f);
             }
         }
 
-        static int GetState () {
-            var state = 0;
-            for (var i = 0; i < AllCapabilities.Length; ++i)
-                if (glIsEnabled(AllCapabilities[i]))
-                    state |= 1 << i;
-            return state;
+        private int count;
+        private List<TimePoint> events = new List<TimePoint>();
+        private Point[] points;
+        private Program () {        }
+        private long timerFrequency;
+        private TrackBar slider;
+        protected override void OnLoad (EventArgs _) {
+            ClientSize = new Size(1000, 1000);
+            events.AddRange(FromFile("movements.bin"));
+
+            using (var f = File.OpenRead("movements.bin")) {
+                var bytes = new byte[sizeof(long)];
+                var read = f.Read(bytes, 0, sizeof(long));
+                if (read != sizeof(long))
+                    throw new ApplicationException();
+                timerFrequency = BitConverter.ToInt64(bytes, 0);
+            }
+
+            var (minx, maxx, miny, maxy, x, y) = (0, 0, 0, 0, 0, 0);
+            count = events.Count;
+            foreach (var d in events) {
+                x += d.dx;
+                y += d.dy;
+                if (x < minx)
+                    minx = x;
+                if (maxx < x)
+                    maxx = x;
+                if (y < miny)
+                    miny = y;
+                if (maxy < y)
+                    maxy = y;
+            }
+            var (w, h) = (maxx - minx, maxy - miny);
+            points = new Point[count];
+            (x, y) = (0, 0);
+            for (var i = 0; i < count; i++) {
+                var d = events[i];
+                x += d.dx;
+                y += d.dy;
+                points[i] = new Point(x - minx, y - miny);
+            }
+            slider = new TrackBar();
+            slider.Location = new Point(slider.Margin.Left, slider.Margin.Top);
+            slider.Width = ClientSize.Width - slider.Margin.Horizontal;
+            slider.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            slider.Minimum = 0;
+            slider.Maximum = count - 1;
+            Controls.Add(slider);
+        }
+        protected override void OnPaint (PaintEventArgs e) {
+            e.Graphics.Clear(Color.Black);
+            
+            e.Graphics.DrawLines(Pens.White, points);
+            base.OnPaint(e);
         }
 
-        static readonly Capability[] AllCapabilities = new Capability[] {
-            Capability.Blend,
-            Capability.CullFace, 
-            //Capability.LineSmooth, 
-            Capability.StencilTest, 
-            //Capability.Dither, 
-            Capability.DepthTest,
-        };
-        static long framecount = 0l;
-        [STAThread]
-        static void Main () {
-            if (!Glfw.Init())
-                throw new ApplicationException();
-            onError = new ErrorCallback(OnError);
-            _ = Glfw.SetErrorCallback(onError);
-            Glfw.WindowHint(Hint.Resizable, false);
-            Glfw.WindowHint(Hint.OpenglForwardCompatible, true);
-            Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
-            Glfw.WindowHint(Hint.ContextVersionMajor, 4);
-            Glfw.WindowHint(Hint.ContextVersionMinor, 6);
-            Glfw.WindowHint(Hint.DepthBits, 24);
-            Glfw.WindowHint(Hint.Doublebuffer, true);
-            glfwWindow = Glfw.CreateWindow(_WIDTH, _HEIGHT, "", Monitor.None, Window.None);
-            onKey = new KeyCallback(OnKey);
-            _ = Glfw.SetKeyCallback(glfwWindow, onKey);
-            Glfw.MakeContextCurrent(glfwWindow);
-            GetDelegateFor(ref glClear, nameof(glClear));
-            GetDelegateFor(ref glClearColor, nameof(glClearColor));
-            GetDelegateFor(ref glEnable, nameof(glEnable));
-            GetDelegateFor(ref glDisable, nameof(glDisable));
-            GetDelegateFor(ref glIsEnabled, nameof(glIsEnabled));
-            Glfw.ShowWindow(glfwWindow);
-            glDisable(Capability.Dither);
-            MaybeDump(-1);
-            while (!Glfw.WindowShouldClose(glfwWindow)) {
-                MaybeDump(0);
-                if (framecount >= 0xFF && (framecount & 0xFF) == 0)
-                    Toggle(AllCapabilities[(framecount >> 8) % AllCapabilities.Length]);
-                MaybeDump(1);
-                Glfw.PollEvents();
-                MaybeDump(2);
-                glClearColor(.1f, .1f, .1f, 1f);
-                MaybeDump(3);
-                glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-                MaybeDump(4);
-                Glfw.SwapBuffers(glfwWindow);
-                MaybeDump(5);
-                ++framecount;
+        unsafe private static void Proc () {
+            const int capacity = 10000;
+            var events = new TimePoint[capacity];
+
+            CursorPosition.Get(out var px, out var py);
+            var index = 0;
+            while (run && index < capacity) {
+                var t = Stopwatch.GetTimestamp();
+                CursorPosition.Get(out var x, out var y);
+                var (dx, dy) = (px - x, py - y);
+                if (dx != 0 || dy != 0) {
+                    events[index++] = new TimePoint() { ticks = t, dx = dx, dy = dy };
+                    px = x;
+                    py = y;
+                }
             }
-            Glfw.DestroyWindow(glfwWindow);
-            Glfw.Terminate();
-            _ = Console.ReadLine();
+            using (var writer = new BinaryWriter(File.Create("movements.bin"))) {
+                writer.Write(Stopwatch.Frequency);
+                foreach (var e in events) {
+                    if (e.ticks == 0)
+                        break;
+                    writer.Write(e.ticks);
+                    writer.Write(e.dx);
+                    writer.Write(e.dy);
+                }
+            }
         }
-        static void Toggle (Capability c) {
-            var enabled = glIsEnabled(c);
-            Console.WriteLine($"{framecount,-5} toggling {c}, currently {enabled}");
-            if (enabled)
-                glDisable(c);
-            else
-                glEnable(c);
+        volatile static bool run = true;
+        internal static void Main () {
+            const double framerate = 100.0;
+            var performanceCounterFrequency = (double)Stopwatch.Frequency;
+            var ticksPerFrame = performanceCounterFrequency / framerate;
+            using (var f = File.OpenRead("movements.bin")) {
+                var bytes = new byte[sizeof(long)];
+                var read = f.Read(bytes, 0, sizeof(long));
+                if (read != sizeof(long))
+                    throw new ApplicationException();
+                var timerFrequency = BitConverter.ToInt64(bytes, 0);
+                Debug.Assert(timerFrequency == Stopwatch.Frequency);
+            }
+            var events = new List<TimePoint>(FromFile("movements.bin"));
+            Debug.Assert(events.Count != 0);
+            var t0 = events[0].ticks;
+            var frametime = 0.0;
+            var i = 0;
+            for (; ; ) {
+                if (i >= events.Count)
+                    break;
+                var e = events[i];
+                var deltaTicks = e.ticks - t0;
+
+            }
+
+            //var thread = new Thread(Proc);
+            //thread.Start();
+            //_ = Console.ReadLine();
+            //run = false;
+            //thread.Join();
+            Application.Run(new Program());
         }
     }
 }

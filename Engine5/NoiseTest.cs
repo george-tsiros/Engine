@@ -50,7 +50,7 @@ class NoiseTest:GlWindowBase {
     unsafe protected override void Init () {
         quad = new();
         quad.Assign(new VertexBuffer<Vector4>(Geometry.Quad), PassThrough.VertexPosition);
-        tex = new(_WIDTH, _HEIGHT, TextureInternalFormat.Rgba8) { Min = MinFilter.Nearest, Mag = MagFilter.Nearest, Wrap = Wrap.ClampToEdge };
+        tex = new(new(_WIDTH, _HEIGHT), TextureInternalFormat.Rgba8) { Min = MinFilter.Nearest, Mag = MagFilter.Nearest, Wrap = Wrap.ClampToEdge };
         noises = new FastNoiseLite[_THREADCOUNT];
         for (var i = 3; i < bytes.Length; i += 4)
             bytes[i] = byte.MaxValue;
@@ -66,7 +66,7 @@ class NoiseTest:GlWindowBase {
         fixed (byte* p = bytes)
             TextureSubImage2D(tex, 0, 0, 0, tex.Width, tex.Height, TextureFormat.Bgra, Const.UNSIGNED_BYTE, p);
 
-        Viewport(0, 0, Width, Height);
+        Viewport(new(), GetClientSize());
         ClearColor(0f, 0f, 0f, 1f);
         Clear(BufferBit.Color | BufferBit.Depth);
         State.Program = PassThrough.Id;

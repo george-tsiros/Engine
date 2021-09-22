@@ -26,7 +26,7 @@ class GlWindowBase:IDisposable {
     }
 
     unsafe private GlWindowBase (int width, int height, Monitor monitor) {
-        Window = Glfw.CreateWindow(Width = width, Height = height, GetType().Name, monitor, Window.None);
+        Window = Glfw.CreateWindow(width, height, GetType().Name, monitor, Window.None);
         isFullscreen = monitor != Monitor.None;
         Glfw.MakeContextCurrent(Window);
         Calls.DebugMessageCallback(debugProc = HandleDebug, IntPtr.Zero);
@@ -48,10 +48,12 @@ class GlWindowBase:IDisposable {
 
     public GlWindowBase (Monitor monitor) : this(monitor.WorkArea.Width, monitor.WorkArea.Height, monitor) { }
     public GlWindowBase (int width, int height) : this(width, height, Monitor.None) { }
+    protected Vector2i GetClientSize() {
+        Glfw.GetWindowSize(Window, out var width, out var height);
+        return new(width, height);
+    }
 
-    protected int Width { get; private set; }
-    protected int Height { get; private set; }
-    protected Window Window { get; private set; }
+    protected Window Window { get; }
     protected ulong FramesRendered { get; private set; }
 
     protected virtual void Init () { }
@@ -112,13 +114,12 @@ class GlWindowBase:IDisposable {
 #if __PERF__
         Enter(Events.Swap);
 #endif
-        //Calls.Flush();
         Glfw.SwapBuffers(Window);
+        lastSwapTicks = GetTicks();
 #if __PERF__
         Leave();
         Leave();
 #endif
-        lastSwapTicks = GetTicks();
         ++FramesRendered;
     }
 
@@ -278,10 +279,7 @@ class GlWindowBase:IDisposable {
             CursorGrabbed = true;
     }
 
-    private void OnFramebufferSize (Window _, int width, int height) {
-        Width = width;
-        Height = height;
-    }
+    private void OnFramebufferSize (Window _, int width, int height) { }
 
     private void OnKey (Window _, Keys key, int code, InputState state, ModifierKeys modifier) {
         if (keys.TryGetValue(key, out var keyAction))
@@ -311,7 +309,6 @@ class GlWindowBase:IDisposable {
         if (!disposed && Window != Window.None) {
             if (disposing) {
                 Glfw.DestroyWindow(Window);
-                Window = Window.None;
 #if __PERF__
                 perf.Dispose();
 #endif

@@ -28,7 +28,9 @@ class NeinCraft:GlWindowBase {
         skyboxVao.Assign(skyboxVertices, SkyBox.VertexPosition);
         skyboxUV = new(Geometry.Dex(Geometry.CubeUVVectors, Geometry.FlipWinding(Geometry.CubeUVIndices)));
         skyboxVao.Assign(skyboxUV, SkyBox.VertexUV);
-        var projection = Matrix4x4.CreatePerspectiveFieldOfView((float)(Math.PI / 4), (float)Width / Height, 2f, 2000f);
+        var clientsize = GetClientSize();
+
+        var projection = Matrix4x4.CreatePerspectiveFieldOfView((float)(Math.PI / 4), (float)clientsize.X / clientsize.Y, 2f, 2000f);
         SkyBox.Projection(projection);
 
         State.Program = SolidColor.Id;
@@ -40,7 +42,7 @@ class NeinCraft:GlWindowBase {
     }
     double theta = 0.0;
     protected override void Render (float dt) {
-        Viewport(0, 0, Width, Height);
+        Viewport(new(), GetClientSize());
         Clear(BufferBit.Color | BufferBit.Depth);
         theta += 1.8 * dt;
         if (theta > 2.0 * Math.PI)

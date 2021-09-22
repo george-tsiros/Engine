@@ -143,7 +143,7 @@ unsafe public static class Calls {
     public static void UseProgram (int p) => glUseProgram(p);
     public static void VertexAttribDivisor (int index, int divisor) => glVertexAttribDivisor(index, divisor);
     public static void VertexAttribPointer (int index, int size, AttribType type, bool normalized, int stride, long ptr) => glVertexAttribPointer(index, size, type, normalized, stride, ptr);
-    public static void Viewport (int x, int y, int w, int h) => glViewport(x, y, w, h);
+    public static void Viewport (Vector2i position, Vector2i size) => glViewport(position.X, position.Y, size.X, size.Y);
     public static void Flush () => glFlush();
     public static void Finish () => glFinish();
 

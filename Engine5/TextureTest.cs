@@ -5,13 +5,7 @@ using System.Numerics;
 using Gl;
 using static Gl.Calls;
 using Shaders;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Drawing.Drawing2D;
-using System.Drawing.Text;
 using GLFW;
-using System.Diagnostics;
-using System.IO;
 
 class ProcTexture:GlWindowBase {
     public ProcTexture (Monitor monitor) : base(monitor) { }
@@ -28,17 +22,13 @@ class TextureTest:GlWindowBase {
     private VertexBuffer<Vector4> skyboxVertices;
     private VertexBuffer<Vector2> skyboxUV;
 
-    private Bitmap ui;
-    private readonly Font font = new("ubuntu mono", 12f, GraphicsUnit.Pixel);
-    private readonly Brush translucentBrush = new SolidBrush(Color.FromArgb(64, 0, 0, 0));
+    private Raster ui;
 
     unsafe private void UploadTexture () {
-        Enter(Events.LockBits);
-        var lockBits = ui.LockBits(new(new(), ui.Size), System.Drawing.Imaging.ImageLockMode.ReadOnly, ui.PixelFormat);
         Enter(Events.Texture);
-        TextureSubImage2D(uiTexture, 0, 0, 0, Width, Height, TextureFormat.Bgra, Const.UNSIGNED_BYTE, lockBits.Scan0.ToPointer());
-        Leave();
-        ui.UnlockBits(lockBits);
+        var clientSize = GetClientSize();
+        fixed(byte* p = ui.Pixels)
+            TextureSubImage2D(uiTexture, 0, 0, 0, clientSize.X, clientSize.Y, TextureFormat.Bgra, Const.UNSIGNED_BYTE, p);
         Leave();
     }
 
@@ -51,7 +41,8 @@ class TextureTest:GlWindowBase {
         quad.Assign(new VertexBuffer<Vector2>(Geometry.QuadUV), SimpleTexture.VertexUV);
         var models = new Matrix4x4[] { Matrix4x4.Identity };
         quad.Assign(new VertexBuffer<Matrix4x4>(models), SimpleTexture.Model, 1);
-        var projection = Matrix4x4.CreatePerspectiveFieldOfView((float)(Math.PI / 4), (float)Width / Height, 1f, 100f);
+        var clientSize = GetClientSize();
+        var projection = Matrix4x4.CreatePerspectiveFieldOfView((float)(Math.PI / 4), (float)clientSize.X / clientSize.Y, 1f, 100f);
         SimpleTexture.Projection(projection);
 
         tex = Sampler2D.FromFile("untitled.raw");
@@ -63,11 +54,12 @@ class TextureTest:GlWindowBase {
         State.Program = PassThrough.Id;
         uiVao.Assign(quadBuffer, PassThrough.VertexPosition);
 
-        uiTexture = new(Width, Height, TextureInternalFormat.Rgba8);
+        uiTexture = new(clientSize, TextureInternalFormat.Rgba8);
         uiTexture.Mag = MagFilter.Nearest;
         uiTexture.Min = MinFilter.Nearest;
-        ui = new(Width, Height, PixelFormat.Format32bppArgb);
-
+        ui = new Raster(clientSize, 4, 1);
+        for (var i = 0; i < ui.Pixels.Length; i++)
+            ui.Pixels[i] = 64;
         State.Program = SkyBox.Id;
         skyboxVao = new();
         skyboxTexture = Sampler2D.FromFile("skybox.raw");
@@ -82,19 +74,8 @@ class TextureTest:GlWindowBase {
     }
 
     protected override void Render (float dt) {
-        Enter(Events.Graphics);
-        using (var g = Graphics.FromImage(ui)) {
-            Enter(Events.Text);
-            g.CompositingMode = CompositingMode.SourceCopy;
-            g.FillRectangle(translucentBrush, 0, 0, 200, 100);
-            g.CompositingMode = CompositingMode.SourceOver;
-            g.TextRenderingHint = TextRenderingHint.SingleBitPerPixelGridFit;
-            g.DrawString(FramesRendered.ToString(), font, Brushes.White, 0f, 0f);
-            Leave();
-        }
-        Leave();
         UploadTexture();
-        Viewport(0, 0, Width, Height);
+        Viewport(new(), GetClientSize());
         Clear(BufferBit.Color | BufferBit.Depth);
         State.Program = SimpleTexture.Id;
         State.VertexArray = quad;

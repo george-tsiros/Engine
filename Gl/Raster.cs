@@ -5,12 +5,14 @@ using System.IO;
 using System.IO.Compression;
 
 public class Raster:IDisposable {
-
-    public readonly int Width, Height, Channels, BytesPerChannel, Stride;
+    public readonly Vector2i Size;
+    public int Width => Size.X;
+    public int Height => Size.Y;
+    public readonly int Channels, BytesPerChannel, Stride;
     
     public byte[] Pixels;
-    public Raster (int width, int height, int channels, int bytesPerChannel) {
-        (Width, Height, Channels, BytesPerChannel) = (width, height, channels, bytesPerChannel);
+    public Raster (Vector2i size, int channels, int bytesPerChannel) {
+        (Size, Channels, BytesPerChannel) = (size, channels, bytesPerChannel);
         Pixels = new byte[Width * Height * Channels * BytesPerChannel];
         Stride = Width * Channels * BytesPerChannel;
     }
@@ -24,7 +26,7 @@ public class Raster:IDisposable {
         if (bytesPerChannel != 1)
             throw new ArgumentOutOfRangeException(nameof(bytesPerChannel), "only 1Bpp bitmaps are currently supported");
         var length = r.ReadInt32();
-        return new Raster(width, height, channels, bytesPerChannel);
+        return new Raster(new(width,height), channels, bytesPerChannel);
     }
     
     public static Raster FromFile (string filepath) {
