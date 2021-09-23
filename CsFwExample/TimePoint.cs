@@ -4,7 +4,7 @@
 
     struct TimePoint {
         public long ticks;
-        public int dx, dy;
+        public int x, y;
         unsafe public static TimePoint FromFileStream (FileStream f) {
             const int structSize = sizeof(long) + 2 * sizeof(int);
             var bytes = new byte[structSize];
@@ -14,7 +14,7 @@
             var ticks = BitConverter.ToInt64(bytes, 0);
             var dx = BitConverter.ToInt32(bytes, sizeof(long));
             var dy = BitConverter.ToInt32(bytes, sizeof(long) + sizeof(int));
-            return new TimePoint { ticks = ticks, dx = dx, dy = dy };
+            return new TimePoint { ticks = ticks, x = dx, y = dy };
         }
     }
 }
