@@ -67,15 +67,14 @@
             const int capacity = 10000;
             var events = new TimePoint[capacity];
 
-            CursorPosition.Get(out var px, out var py);
+            var previousLocation = CursorPosition.Get();
             var index = 0;
             while (run && index < capacity) {
                 var t = Stopwatch.GetTimestamp();
-                CursorPosition.Get(out var x, out var y);
-                if (px != x || py != y) {
-                    events[index++] = new TimePoint() { ticks = t, x = x, y = y };
-                    px = x;
-                    py = y;
+                var currentLocation = CursorPosition.Get();
+                if (previousLocation != currentLocation) {
+                    events[index++] = new TimePoint() { ticks = t, x = currentLocation.X, y = currentLocation.Y };
+                    previousLocation = currentLocation;
                 }
             }
             using (var writer = new BinaryWriter(File.Create("movements.bin"))) {
@@ -120,11 +119,11 @@
             //    (px, py) = (px + e.dx, py + e.dy);
             //}
 
-            var thread = new Thread(Proc);
-            thread.Start();
-            _ = Console.ReadLine();
-            run = false;
-            thread.Join();
+            //var thread = new Thread(Proc);
+            //thread.Start();
+            //_ = Console.ReadLine();
+            //run = false;
+            //thread.Join();
             Application.Run(new Program());
         }
     }
