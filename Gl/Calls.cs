@@ -66,7 +66,6 @@ unsafe public static class Calls {
     private static readonly delegate* unmanaged[Cdecl]<void> glFinish;
     private static readonly delegate* unmanaged[Cdecl]<int, int, void> glBlendFunc;
 
-#pragma warning disable CS0169
     private static readonly delegate* unmanaged[Cdecl]<int, bool> glIsBuffer;
     private static readonly delegate* unmanaged[Cdecl]<int, bool> glIsProgram;
     private static readonly delegate* unmanaged[Cdecl]<int, bool> glIsShader;
@@ -96,7 +95,6 @@ unsafe public static class Calls {
     private static readonly delegate* unmanaged[Cdecl]<int, int, float*, void> glUniform2fv;
     private static readonly delegate* unmanaged[Cdecl]<int, TextureParameter, float*, void> glGetTextureParameterfv;
     private static readonly delegate* unmanaged[Cdecl]<int, TextureParameter, int*, void> glGetTextureParameteriv;
-#pragma warning restore CS0169
 #pragma warning restore CS0649
 
     public static bool IsEnabled (Capability cap) => glIsEnabled(cap);
@@ -147,33 +145,24 @@ unsafe public static class Calls {
     public static void Flush () => glFlush();
     public static void Finish () => glFinish();
 
-    public static int GetAttribLocation (int program, string name) {
+    public static int GetAttribLocation (int program, string name) => GetLocation(program, name, glGetAttribLocation);
+    public static int GetUniformLocation (int program, string name) => GetLocation(program, name, glGetUniformLocation);
+
+    private static int GetLocation (int program, string name, delegate* unmanaged[Cdecl]<int, byte*, int> f) {
         Span<byte> bytes = stackalloc byte[name.Length + 1];
         var l = Encoding.ASCII.GetBytes(name, bytes);
         Debug.Assert(l == name.Length);
         bytes[name.Length] = 0;
         fixed (byte* p = bytes)
-            return glGetAttribLocation(program, p);
+            return f(program, p);
     }
 
-    public static int GetUniformLocation (int program, string name) {
-        Span<byte> bytes = stackalloc byte[name.Length + 1];
-        var l = Encoding.ASCII.GetBytes(name, bytes);
-        Debug.Assert(l == name.Length);
-        bytes[name.Length] = 0;
-        fixed (byte* p = bytes)
-            return glGetUniformLocation(program, p);
-    }
+    public static int CreateBuffer () => Create(glCreateBuffers);
+    public static int CreateVertexArray () => Create(glCreateVertexArrays);
 
-    public static int CreateBuffer () {
+    private static int Create (delegate* unmanaged[Cdecl]<int, int*, void> f) {
         int i;
-        glCreateBuffers(1, &i);
-        return i;
-    }
-
-    public static int CreateVertexArray () {
-        int i;
-        glCreateVertexArrays(1, &i);
+        f(1, &i);
         return i;
     }
 
@@ -186,7 +175,7 @@ unsafe public static class Calls {
             glShaderSource(id, 1, &strPtr, null);
     }
 
-    public static int GetProgram (int id, ProgramParameter p) {
+    public static int GetProgram (int id, ProgramParameter p) { // I wish I could join this with GetShader
         int i;
         glGetProgramiv(id, p, &i);
         return i;
@@ -239,7 +228,7 @@ unsafe public static class Calls {
     }
 
     unsafe public static int GetIntegerv (IntParameter p) {
-        var i = 0;
+        int i;
         glGetIntegerv((int)p, &i);
         return i;
     }

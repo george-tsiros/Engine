@@ -6,23 +6,26 @@ using System.Runtime.InteropServices;
 using Gl;
 using static Gl.Calls;
 using static Gl.Utilities;
+using GLFW;
+using static GLFW.Glfw;
 class ShaderGen {
     private static bool CreateFrom (string[] args) {
-        if (args.Length != 2)
-            throw new ArgumentException($"must have length 1, not {args.Length}", nameof(args));
+        const int expectedArgumentCount = 2;
+        if (args.Length != expectedArgumentCount)
+            throw new ArgumentException($"expected {expectedArgumentCount}, not {args.Length} arguments", nameof(args));
         var missing = Array.FindIndex(args, f => !Directory.Exists(f));
         if (missing >= 0)
             throw new DirectoryNotFoundException(args[missing]);
 
-        GLFW.Glfw.WindowHint(GLFW.Hint.ContextVersionMajor, 4);
-        GLFW.Glfw.WindowHint(GLFW.Hint.ContextVersionMinor, 6);
-        GLFW.Glfw.WindowHint(GLFW.Hint.OpenglDebugContext, GLFW.Constants.True);
-        GLFW.Glfw.WindowHint(GLFW.Hint.OpenglForwardCompatible, GLFW.Constants.True);
-        GLFW.Glfw.WindowHint(GLFW.Hint.OpenglProfile, GLFW.Profile.Core);
-        GLFW.Glfw.WindowHint(GLFW.Hint.Visible, GLFW.Constants.False);
+        WindowHint(Hint.ContextVersionMajor, 4);
+        WindowHint(Hint.ContextVersionMinor, 6);
+        WindowHint(Hint.OpenglDebugContext, 1);
+        WindowHint(Hint.OpenglForwardCompatible, 1);
+        WindowHint(Hint.OpenglProfile, Profile.Core);
+        WindowHint(Hint.Visible, 0);
 
-        var window = GLFW.Glfw.CreateWindow(256, 256, string.Empty, GLFW.Monitor.None, GLFW.Window.None);
-        GLFW.Glfw.MakeContextCurrent(window);
+        var window = CreateWindow(256, 256, string.Empty, Monitor.None, Window.None);
+        MakeContextCurrent(window);
         try {
             foreach (var vertexShaderFilepath in Directory.EnumerateFiles(args[0], "*.vert")) {
                 var shaderName = UppercaseFirst(Path.GetFileNameWithoutExtension(vertexShaderFilepath));
@@ -45,7 +48,7 @@ class ShaderGen {
             return false;
         }
         finally {
-            GLFW.Glfw.DestroyWindow(window);
+            DestroyWindow(window);
         }
         return true;
     }
@@ -63,7 +66,7 @@ class ShaderGen {
             return "int";
         return type.ToString();
     }
-    //static bool IsReserved (string name) => name == "float" || name == "double" || name == "byte" || name == "char";
+
     private static bool IsPrimitive (string name) => name == "float" || name == "double" || name == "byte" || name == "char";
     private static void DoProgram (int program, string className, StreamWriter f) {
         f.Write($@"namespace Shaders;

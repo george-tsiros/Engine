@@ -1,34 +1,25 @@
 #include <windows.h>
 
-
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
     case WM_DESTROY:
-    {
         PostQuitMessage(0);
-    }
-    break;
-
+        break;
     case WM_KEYUP:
-    {
         if (wParam == VK_ESCAPE)
             PostQuitMessage(0);
-    }
-    break;
+        break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
-
     }
     return 0;
 }
 
 int WINAPI WinMain(__in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in LPSTR lpCmdLine, __in int nShowCmd) {
-    HBRUSH black = CreateSolidBrush(0xFF00FFFF);
     WNDCLASS wc = { 0 };
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
-    wc.hbrBackground = black;
-    wc.lpszClassName = TEXT("oglversionchecksample");
+    wc.lpszClassName = TEXT("PlainWindow");
     wc.style = CS_HREDRAW | CS_VREDRAW;
     if (!RegisterClass(&wc))
         return 1;
@@ -36,20 +27,19 @@ int WINAPI WinMain(__in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, _
     ShowWindow(window, nShowCmd);
     UpdateWindow(window);
     MSG msg = { 0 };
-    while (1) {
-        BOOL messageOk = GetMessage(&msg, NULL, 0, 0);
-        if (messageOk == -1) {
-            DWORD aaaaaaa = GetLastError();
-            DebugBreak();
-        }
-
-        if (messageOk == 0)
-            break;
+again:
+    switch (GetMessage(&msg, NULL, 0, 0)) {
+    case -1: {
+        DWORD lastError = GetLastError();
+        DebugBreak();
+    }
+    case 0:
+        break;
+    default:
         DispatchMessage(&msg);
+        goto again; // what about it?
     }
 
-    DeleteObject(black);
-    //wglDeleteContext(ctx);
     UnregisterClass(wc.lpszClassName, hInstance);
     return 0;
 }

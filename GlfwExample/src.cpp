@@ -17,7 +17,7 @@ void OnError(int errorCode, const char* message) {
 }
 void OnKey(GLFWwindow* window, int key, int scanCode, int action, int modifiers) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
+        glfwSetWindowShouldClose(window, 1);
 }
 
 int allCapabilities[] = {
@@ -57,13 +57,13 @@ int main() {
     if (!glfwInit())
         return ReturnWith("glfwInit", -1);
 
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, 0);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_DEPTH_BITS, 24);
-    glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
+    glfwWindowHint(GLFW_DOUBLEBUFFER, 1);
     window = glfwCreateWindow(800, 600, "", NULL, NULL);
     if (!window)
         return ReturnWith("create window", -1);

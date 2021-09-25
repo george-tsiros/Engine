@@ -72,7 +72,12 @@ class TextureTest:GlWindowBase {
         skyboxVao.Assign(skyboxUV, SkyBox.VertexUV);
         SkyBox.Projection(projection);
     }
-
+    private bool showUI;
+    [KeyBinding(Keys.U)]
+    protected void ToggleUI (Keys k, InputState state) {
+        if (state == InputState.Release)
+            showUI = !showUI;
+    }
     protected override void Render (float dt) {
         UploadTexture();
         Viewport(new(), GetClientSize());
@@ -95,15 +100,16 @@ class TextureTest:GlWindowBase {
         SkyBox.Tex(0);
         SkyBox.View(Camera.RotationOnly);
         DrawArrays(Primitive.Triangles, 0, 36);
-
-        State.Program = PassThrough.Id;
-        State.VertexArray = uiVao;
-        State.Blend = true;
-        State.DepthTest = false;
-        State.CullFace = false;
-        BlendFunc(BlendSourceFactor.One, BlendDestinationFactor.OneMinusSrcAlpha);
-        uiTexture.BindTo(2);
-        PassThrough.Tex(2);
-        DrawArrays(Primitive.Triangles, 0, 6);
+        if (showUI) {
+            State.Program = PassThrough.Id;
+            State.VertexArray = uiVao;
+            State.Blend = true;
+            State.DepthTest = false;
+            State.CullFace = false;
+            BlendFunc(BlendSourceFactor.One, BlendDestinationFactor.OneMinusSrcAlpha);
+            uiTexture.BindTo(2);
+            PassThrough.Tex(2);
+            DrawArrays(Primitive.Triangles, 0, 6);
+        }
     }
 }

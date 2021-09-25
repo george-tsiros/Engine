@@ -3,6 +3,7 @@
     using System.Diagnostics;
     using System.IO;
     using System.Drawing;
+    using System.Drawing.Imaging;
     using System.Windows.Forms;
     using System.Collections.Generic;
     using System.Threading;
@@ -19,11 +20,33 @@
         private int count;
         private List<TimePoint> events = new List<TimePoint>();
         private Point[] points;
-        private Program () { }
+        private Program () {
+            //SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
+        }
         private long timerFrequency;
         private TrackBar slider;
+
+        private static Rectangle BoundingRectangle (IEnumerable<TimePoint> points) {
+            var (minx, maxx, miny, maxy) = (int.MaxValue, int.MinValue, int.MaxValue, int.MinValue);
+            foreach (var d in points) {
+                minx = Math.Min(minx, d.p.X);
+                miny = Math.Min(miny, d.p.Y);
+                maxx = Math.Max(maxx, d.p.X);
+                maxy = Math.Max(maxy, d.p.Y);
+            }
+            return new Rectangle(minx, miny, maxx - minx, maxy - miny);
+        }
+
         protected override void OnLoad (EventArgs _) {
             ClientSize = new Size(1000, 1000);
+            var b = new Bitmap(ClientSize.Width, ClientSize.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(b))
+                g.Clear(Color.Black);
+            BackgroundImage = b;
+            BackgroundImageLayout = ImageLayout.Center;
+            Debug.Assert(ReferenceEquals(b, BackgroundImage));
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+
             events.AddRange(FromFile("movements.bin"));
 
             using (var f = File.OpenRead("movements.bin")) {
@@ -34,20 +57,13 @@
                 timerFrequency = BitConverter.ToInt64(bytes, 0);
             }
 
-            var (minx, maxx, miny, maxy) = (int.MaxValue, int.MinValue, int.MaxValue, int.MinValue);
             count = events.Count;
-            foreach (var d in events) {
-                minx = Math.Min(minx, d.x);
-                miny = Math.Min(miny, d.y);
-                maxx = Math.Max(maxx, d.x);
-                maxy = Math.Max(maxy, d.y);
-            }
-            var (w, h) = (maxx - minx, maxy - miny);
+            var boundingRect = BoundingRectangle(events);
+
             points = new Point[count];
-            for (var i = 0; i < count; i++) {
-                var e = events[i];
-                points[i] = new Point(e.x - minx, e.y - miny);
-            }
+            for (var i = 0; i < count; i++)
+                points[i] = events[i].p - (Size)boundingRect.Location;
+
             slider = new TrackBar();
             slider.Location = new Point(slider.Margin.Left, slider.Margin.Top);
             slider.Width = ClientSize.Width - slider.Margin.Horizontal;
@@ -55,14 +71,25 @@
             slider.Minimum = 0;
             slider.Maximum = count - 1;
             Controls.Add(slider);
+            Invalidate();
         }
-        protected override void OnPaint (PaintEventArgs e) {
-            e.Graphics.Clear(Color.Black);
-
-            e.Graphics.DrawLines(Pens.White, points);
-            base.OnPaint(e);
+        unsafe protected override void OnPaint (PaintEventArgs args) {
+            Debug.Assert(BackgroundImage is Bitmap);
+            var t0 = Stopwatch.GetTimestamp();
+            using (var g = Graphics.FromImage(BackgroundImage))
+                g.Clear(Color.Black);
+            var b = (Bitmap)BackgroundImage;
+            var l = b.LockBits(new Rectangle(0, 0, b.Width, b.Height), ImageLockMode.WriteOnly, b.PixelFormat);
+            Debug.Assert(l.Stride == 4 * l.Width);
+            var p = (uint*)l.Scan0.ToPointer();
+            var w = l.Width;
+            foreach (var pt in points) 
+                p[w * pt.Y + pt.X] = ~0u;
+            var t1 = Stopwatch.GetTimestamp();
+            Debug.WriteLine((t1 - t0) / (double)Stopwatch.Frequency);
+            b.UnlockBits(l);
+            base.OnPaint(args);
         }
-
         unsafe private static void Proc () {
             const int capacity = 10000;
             var events = new TimePoint[capacity];
@@ -73,7 +100,7 @@
                 var t = Stopwatch.GetTimestamp();
                 var currentLocation = CursorPosition.Get();
                 if (previousLocation != currentLocation) {
-                    events[index++] = new TimePoint() { ticks = t, x = currentLocation.X, y = currentLocation.Y };
+                    events[index++] = new TimePoint() { ticks = t, p = currentLocation };
                     previousLocation = currentLocation;
                 }
             }
@@ -83,41 +110,15 @@
                     if (e.ticks == 0)
                         break;
                     writer.Write(e.ticks);
-                    writer.Write(e.x);
-                    writer.Write(e.y);
+                    writer.Write(e.p.X);
+                    writer.Write(e.p.Y);
                 }
             }
         }
-        volatile static bool run = true;
-        internal static void Main () {
-            //const double framerate = 100.0;
-            //var ticksPerSecond = (double)Stopwatch.Frequency;
-            //var ticksPerFrame = ticksPerSecond / framerate;
-            //var secondsPerFrame = 1.0 / framerate;
-            //using (var f = File.OpenRead("movements.bin")) {
-            //    var bytes = new byte[sizeof(long)];
-            //    var read = f.Read(bytes, 0, sizeof(long));
-            //    if (read != sizeof(long))
-            //        throw new ApplicationException();
-            //    var timerFrequency = BitConverter.ToInt64(bytes, 0);
-            //    Debug.Assert(timerFrequency == Stopwatch.Frequency);
-            //}
 
-            //var events = new List<TimePoint>(FromFile("movements.bin"));
-            //Debug.Assert(events.Count != 0);
-            //var t0 = events[0].ticks;
-            //var frametime = 0.0;
-            //var (px, py) = (0, 0);
-            //var cursorAtFrame = new List<Point>();
-            //foreach (var e in events) {
-            //    var deltaTicks = e.ticks - t0;
-            //    frametime += deltaTicks / ticksPerSecond;
-            //    if (frametime >= secondsPerFrame) {
-            //        cursorAtFrame.Add(new Point(px, py));
-            //        frametime -= secondsPerFrame;
-            //    }
-            //    (px, py) = (px + e.dx, py + e.dy);
-            //}
+
+        private volatile static bool run = true;
+        private static void Main () {
 
             //var thread = new Thread(Proc);
             //thread.Start();
