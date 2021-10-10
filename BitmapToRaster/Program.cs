@@ -8,25 +8,26 @@ using System.IO;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 class BitmapToRaster {
-    private static bool IsValid (string filepath) => File.Exists(filepath) && Path.GetFileName(filepath).ToLower().EndsWith(".png");
-    private static void Main (string[] args) => Array.ForEach(Array.FindAll(args, IsValid), ConvertFrom);
+    private static void Main (string[] args) => Convert(args[0], args[1]);
 
-    private static void ConvertFrom (string filepath) {
+    private static void Convert (string filepath, string outroot) {
 
-        using (var b = new Bitmap(filepath)) {
-            var l = b.LockBits(new Rectangle(Point.Empty, b.Size), ImageLockMode.ReadOnly, b.PixelFormat);
+        using (var image = new Bitmap(filepath)) {
+            var l = image.LockBits(new Rectangle(Point.Empty, image.Size), ImageLockMode.ReadOnly, image.PixelFormat);
             var bytes = new byte[l.Stride * l.Height];
             var channels = l.Stride / l.Width;
             const int bytesPerChannel = 1;
             Debug.Assert(l.Stride % l.Width == 0);
             Marshal.Copy(l.Scan0, bytes, 0, bytes.Length);
-            b.UnlockBits(l);
+            image.UnlockBits(l);
             var name = Path.GetFileNameWithoutExtension(filepath);
-            var dir = Path.GetDirectoryName(filepath);
-            using (var f = new BinaryWriter(File.Create(Path.Combine(dir, $"{name}.raw")))) {
-                Console.WriteLine($"{filepath}: {b.Width}x{b.Height}, {channels} channels, {bytes.Length} bytes");
-                f.Write(b.Width);
-                f.Write(b.Height);
+            var root = Path.GetDirectoryName(filepath);
+            var outfilename = $"{name}.raw";
+            var outfilepath = Path.Combine(outroot, root, outfilename);
+            using (var f = new BinaryWriter(File.Create(outfilepath))) {
+                Console.WriteLine($"{filepath}: {image.Width}x{image.Height}, {channels} channels, {bytes.Length} bytes");
+                f.Write(image.Width);
+                f.Write(image.Height);
                 f.Write(channels);
                 f.Write(bytesPerChannel);
                 f.Write(bytes.Length);

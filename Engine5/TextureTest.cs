@@ -39,7 +39,7 @@ class TextureTest:GlWindowBase {
         var projection = Matrix4x4.CreatePerspectiveFieldOfView((float)(Math.PI / 4), (float)clientSize.X / clientSize.Y, 1f, 100f);
         SimpleTexture.Projection(projection);
 
-        tex = Sampler2D.FromFile("untitled.raw");
+        tex = Sampler2D.FromFile("data/untitled.raw");
         tex.Mag = MagFilter.Linear;
         tex.Min = MinFilter.LinearMipMapLinear;
         tex.Wrap = Wrap.ClampToEdge;
@@ -56,7 +56,7 @@ class TextureTest:GlWindowBase {
             ui.Pixels[i] = 64;
         State.Program = SkyBox.Id;
         skyboxVao = new();
-        skyboxTexture = Sampler2D.FromFile("skybox.raw");
+        skyboxTexture = Sampler2D.FromFile("data/skybox.raw");
         skyboxTexture.Mag = MagFilter.Linear;
         skyboxTexture.Min = MinFilter.Linear;
         skyboxTexture.Wrap = Wrap.ClampToEdge;

@@ -22,7 +22,7 @@ class NeinCraft:GlWindowBase {
     protected override void Init () {
         State.Program = SkyBox.Id;
         skyboxVao = new();
-        skyboxTexture = Sampler2D.FromFile("skybox.raw");
+        skyboxTexture = Sampler2D.FromFile("data/skybox.raw");
         SkyBox.Tex(0);
         skyboxVertices = new(Geometry.Dex(Geometry.Translate(Cube.Vertices, -.5f * Vector3.One), Geometry.FlipWinding(Cube.Indices)));
         skyboxVao.Assign(skyboxVertices, SkyBox.VertexPosition);

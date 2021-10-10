@@ -47,28 +47,16 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="checkered.raw">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="font.png">
+        <None Update="data\font.png">
           <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-        </None>
-        <None Update="font.raw">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="hints.txt">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <None Update="skybox.raw">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="untitled.raw">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
     </ItemGroup>
 
-    <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-        <Exec Command="C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe skybox.png font.png checkered.png untitled.png" />
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+      <Exec Command="C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe data\skybox.png $(targetdir) &#xD;&#xA;C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe data\font.png $(targetdir)&#xD;&#xA;C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe data\checkered.png $(targetdir)&#xD;&#xA;C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe data\untitled.png $(targetdir)" />
     </Target>
 
 </Project>
