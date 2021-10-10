@@ -1,5 +1,6 @@
 namespace Engine;
 using System;
+using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Gl;
@@ -48,7 +49,7 @@ class GlWindowBase:IDisposable {
 
     public GlWindowBase (Monitor monitor) : this(monitor.WorkArea.Width, monitor.WorkArea.Height, monitor) { }
     public GlWindowBase (int width, int height) : this(width, height, Monitor.None) { }
-    protected Vector2i GetClientSize() {
+    protected Vector2i GetClientSize () {
         Glfw.GetWindowSize(Window, out var width, out var height);
         return new(width, height);
     }
@@ -93,14 +94,13 @@ class GlWindowBase:IDisposable {
         OnWindowFocus(Window, Glfw.GetWindowAttribute(Window, WindowAttribute.Focused));
         CursorGrabbed = isFullscreen;
         startTicks = Stopwatch.GetTimestamp();
-        while (!Glfw.WindowShouldClose(Window)) {
-            if (Focused) {
+        while (!Glfw.WindowShouldClose(Window))
+            if (Focused)
                 Render();
-            } else {
+            else {
                 lastSwapTicks = 0l;
                 Glfw.WaitEvents();
             }
-        }
     }
     private void Render () {
 #if __PERF__
@@ -128,9 +128,9 @@ class GlWindowBase:IDisposable {
         Enter(Events.Delay);
 #endif
         var delayed = lastSwapTicks + ExpectedTicksPerFrame;
-        do {
+        do
             Glfw.PollEvents();
-        } while (GetTicks() < delayed);
+        while (GetTicks() < delayed);
 #if __PERF__
         Leave();
 #endif
@@ -162,7 +162,7 @@ class GlWindowBase:IDisposable {
     [KeyBinding(Keys.Escape)]
     protected void Close (Keys _, InputState state) {
         if (state == InputState.Release)
-            OnCloseInternal(Window);
+            OnClose(Window);
     }
     [KeyBinding(Keys.PageDown, Keys.PageUp)]
     protected void AlterFramerate (Keys k, InputState state) {
@@ -180,6 +180,7 @@ class GlWindowBase:IDisposable {
             Utilities.Trace($"{nameof(CursorGrabbed)}: {CursorGrabbed}");
         }
     }
+    private readonly DebugProc debugProc;
 
 #pragma warning disable IDE0052 // Remove unread private members
     private CharCallback onChar;
@@ -198,12 +199,19 @@ class GlWindowBase:IDisposable {
     private WindowCallback onWindowRefresh, onClose;
     private WindowContentsScaleCallback onWindowContentScale;
     private WindowMaximizedCallback onWindowMaximize;
-    private readonly DebugProc debugProc;
 #pragma warning restore IDE0052 // Remove unread private members
     private void Assign () {
+        var nameMatch = new Regex(@"^Set(\w+)Callback$");
+        foreach (var x in typeof(Glfw).GetMethods(BindingFlags.Public | BindingFlags.Static)) 
+            if (nameMatch.TryMatch(x.Name, out var m)) {
+                var parameters = x.GetParameters();
+                if (parameters.Length == 1 || parameters.Length == 2) { 
+                
+                }
+            }
         onChar = OnChar;
         onCharMods = OnCharMods;
-        onClose = OnCloseInternal;
+        onClose = OnClose;
         onCursorEnter = OnCursorEnter;
         onCursorPosition = OnCursorPosition;
         onDrop = OnDrop;
@@ -289,10 +297,10 @@ class GlWindowBase:IDisposable {
     [KeyBinding(Keys.Z, Keys.X, Keys.C, Keys.D, Keys.LeftShift, Keys.LeftControl)]
     protected void CameraKey (Keys key, InputState state) => _ = Camera.Key(key, state);
 
-    protected virtual void OnClose () { }
-    private void OnCloseInternal (Window _) {
+    protected virtual void Closing () { }
+    private void OnClose (Window _) {
         Glfw.SetWindowShouldClose(Window, true);
-        OnClose();
+        Closing();
     }
     private const string _DEBUG_FORMAT_STRING = "source: {0}\ntype: {1}\nseverity: {2}\nmessage: {3}";
     unsafe private void HandleDebug (int source, int type, int id, int severity, int length, byte* message, void* _) {

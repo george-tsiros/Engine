@@ -62,7 +62,7 @@ class NeinCraft:GlWindowBase {
         DrawArrays(Primitive.Triangles, 0, 36);
     }
 
-    protected override void OnClose () {
+    protected override void Closing () {
         skyboxTexture.Dispose();
         skyboxVao.Dispose();
         skyboxVertices.Dispose();

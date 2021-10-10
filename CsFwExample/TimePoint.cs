@@ -1,5 +1,6 @@
 ﻿namespace CsFwExample {
     using System;
+    using System.Collections.Generic;
     using System.Drawing;
     using System.IO;
 
@@ -16,6 +17,13 @@
             var x = BitConverter.ToInt32(bytes, sizeof(long));
             var y = BitConverter.ToInt32(bytes, sizeof(long) + sizeof(int));
             return new TimePoint { ticks = ticks, p = new Point(x, y) };
+        }
+        public static IEnumerable<TimePoint> FromFile (string filename) {
+            using (var f = File.OpenRead(filename)) {
+                _ = f.Seek(sizeof(long), SeekOrigin.Begin);
+                while (f.Position != f.Length)
+                    yield return TimePoint.FromFileStream(f);
+            }
         }
     }
 }

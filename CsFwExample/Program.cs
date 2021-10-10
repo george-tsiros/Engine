@@ -6,48 +6,44 @@
     using System.Drawing.Imaging;
     using System.Windows.Forms;
     using System.Collections.Generic;
-    using System.Threading;
+
+    struct RawInputDevice {
+        public ushort usagePage, usage;
+        public RegisterInput flags;
+        public int windowHandle;
+    }
+
+    [Flags]
+    enum RegisterInput:ulong {
+        None = 0,
+        Remove = 1 << 0,
+        Exclude = 1 << 4,
+        PageOnly = 1 << 5,
+        NoLegacy = Exclude | PageOnly,
+        InputSink = 1 << 8,
+        CaptureMouse = 1 << 9,
+        NoHotKeys = 1 << 9,
+        AppKeys = 1 << 10,
+    }
 
     class Program:Form {
-        private static IEnumerable<TimePoint> FromFile (string filename) {
-            using (var f = File.OpenRead(filename)) {
-                _ = f.Seek(sizeof(long), SeekOrigin.Begin);
-                while (f.Position != f.Length)
-                    yield return TimePoint.FromFileStream(f);
-            }
-        }
 
-        private int count;
-        private List<TimePoint> events = new List<TimePoint>();
-        private Point[] points;
-        private Program () {
-            //SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
-        }
-        private long timerFrequency;
+        private readonly int count;
+        private readonly List<TimePoint> events;
+        private readonly Point[] points;
+        private readonly long timerFrequency;
         private TrackBar slider;
-
-        private static Rectangle BoundingRectangle (IEnumerable<TimePoint> points) {
-            var (minx, maxx, miny, maxy) = (int.MaxValue, int.MinValue, int.MaxValue, int.MinValue);
-            foreach (var d in points) {
-                minx = Math.Min(minx, d.p.X);
-                miny = Math.Min(miny, d.p.Y);
-                maxx = Math.Max(maxx, d.p.X);
-                maxy = Math.Max(maxy, d.p.Y);
-            }
-            return new Rectangle(minx, miny, maxx - minx, maxy - miny);
-        }
-
-        protected override void OnLoad (EventArgs _) {
+        private Program () {
+            MaximizeBox = false;
             ClientSize = new Size(1000, 1000);
-            var b = new Bitmap(ClientSize.Width, ClientSize.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            var b = new Bitmap(ClientSize.Width, ClientSize.Height, PixelFormat.Format32bppArgb);
             using (var g = Graphics.FromImage(b))
                 g.Clear(Color.Black);
             BackgroundImage = b;
             BackgroundImageLayout = ImageLayout.Center;
             Debug.Assert(ReferenceEquals(b, BackgroundImage));
             FormBorderStyle = FormBorderStyle.FixedSingle;
-
-            events.AddRange(FromFile("movements.bin"));
+            events = new List<TimePoint>(TimePoint.FromFile("movements.bin"));
 
             using (var f = File.OpenRead("movements.bin")) {
                 var bytes = new byte[sizeof(long)];
@@ -63,32 +59,45 @@
             points = new Point[count];
             for (var i = 0; i < count; i++)
                 points[i] = events[i].p - (Size)boundingRect.Location;
+        }
 
+        private static Rectangle BoundingRectangle (IEnumerable<TimePoint> points) {
+            var (minx, maxx, miny, maxy) = (int.MaxValue, int.MinValue, int.MaxValue, int.MinValue);
+            foreach (var d in points) {
+                minx = Math.Min(minx, d.p.X);
+                miny = Math.Min(miny, d.p.Y);
+                maxx = Math.Max(maxx, d.p.X);
+                maxy = Math.Max(maxy, d.p.Y);
+            }
+            return new Rectangle(minx, miny, maxx - minx, maxy - miny);
+        }
+
+        protected override void OnLoad (EventArgs _) {
             slider = new TrackBar();
             slider.Location = new Point(slider.Margin.Left, slider.Margin.Top);
             slider.Width = ClientSize.Width - slider.Margin.Horizontal;
             slider.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             slider.Minimum = 0;
             slider.Maximum = count - 1;
-            Controls.Add(slider);
+            //Controls.Add(slider);
             Invalidate();
         }
-        unsafe protected override void OnPaint (PaintEventArgs args) {
+        unsafe protected override void OnPaintBackground (PaintEventArgs args) {
             Debug.Assert(BackgroundImage is Bitmap);
             var t0 = Stopwatch.GetTimestamp();
             using (var g = Graphics.FromImage(BackgroundImage))
                 g.Clear(Color.Black);
             var b = (Bitmap)BackgroundImage;
-            var l = b.LockBits(new Rectangle(0, 0, b.Width, b.Height), ImageLockMode.WriteOnly, b.PixelFormat);
+            var l = b.LockBits(ImageLockMode.WriteOnly);
             Debug.Assert(l.Stride == 4 * l.Width);
             var p = (uint*)l.Scan0.ToPointer();
             var w = l.Width;
-            foreach (var pt in points) 
+            foreach (var pt in points)
                 p[w * pt.Y + pt.X] = ~0u;
             var t1 = Stopwatch.GetTimestamp();
             Debug.WriteLine((t1 - t0) / (double)Stopwatch.Frequency);
             b.UnlockBits(l);
-            base.OnPaint(args);
+            base.OnPaintBackground(args);
         }
         unsafe private static void Proc () {
             const int capacity = 10000;
@@ -106,6 +115,8 @@
             }
             using (var writer = new BinaryWriter(File.Create("movements.bin"))) {
                 writer.Write(Stopwatch.Frequency);
+                var ob = new TimePoint();
+
                 foreach (var e in events) {
                     if (e.ticks == 0)
                         break;
@@ -119,7 +130,6 @@
 
         private volatile static bool run = true;
         private static void Main () {
-
             //var thread = new Thread(Proc);
             //thread.Start();
             //_ = Console.ReadLine();

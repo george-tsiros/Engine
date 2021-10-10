@@ -7,21 +7,16 @@ using static Gl.Calls;
 using Shaders;
 using GLFW;
 
-class ProcTexture:GlWindowBase {
-    public ProcTexture (Monitor monitor) : base(monitor) { }
-    public ProcTexture (int width, int height) : base(width, height) { }
-}
-
 class TextureTest:GlWindowBase {
     public TextureTest (Monitor monitor) : base(monitor) { }
     public TextureTest (int width, int height) : base(width, height) { }
+
     private VertexArray quad, uiVao;
     private Sampler2D tex, uiTexture;
     private VertexArray skyboxVao;
     private Sampler2D skyboxTexture;
     private VertexBuffer<Vector4> skyboxVertices;
     private VertexBuffer<Vector2> skyboxUV;
-
     private Raster ui;
 
     unsafe private void UploadTexture () {
@@ -33,7 +28,6 @@ class TextureTest:GlWindowBase {
     }
 
     protected unsafe override void Init () {
-
         quad = new();
         State.Program = SimpleTexture.Id;
         var quadBuffer = new VertexBuffer<Vector4>(Quad.Vertices);
@@ -72,12 +66,14 @@ class TextureTest:GlWindowBase {
         skyboxVao.Assign(skyboxUV, SkyBox.VertexUV);
         SkyBox.Projection(projection);
     }
+
     private bool showUI;
     [KeyBinding(Keys.U)]
     protected void ToggleUI (Keys k, InputState state) {
         if (state == InputState.Release)
             showUI = !showUI;
     }
+
     protected override void Render (float dt) {
         UploadTexture();
         Viewport(new(), GetClientSize());
