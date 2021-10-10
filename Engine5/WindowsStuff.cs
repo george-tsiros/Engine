@@ -6,21 +6,21 @@ using System.Runtime.InteropServices;
 static class WindowsStuff {
     [Flags]
     internal enum Ver {
-        MINORVERSION = 0x0000001,
-        MAJORVERSION = 0x0000002,
-        BUILDNUMBER = 0x0000004,
-        PLATFORMID = 0x0000008,
-        SERVICEPACKMINOR = 0x0000010,
-        SERVICEPACKMAJOR = 0x0000020,
-        SUITENAME = 0x0000040,
-        PRODUCT_TYPE = 0x0000080,
+        MinorVersion = 0x0000001,
+        MajorVersion = 0x0000002,
+        BuildNumber = 0x0000004,
+        PlatformId = 0x0000008,
+        ServicePackMinor = 0x0000010,
+        ServicePackMajor = 0x0000020,
+        SuiteName = 0x0000040,
+        ProductType = 0x0000080,
     }
     internal enum Op {
         Equal = 1,
         Greater,
-        Greater_equal,
+        GreaterEqual,
         Less,
-        Less_equal,
+        LessEqual,
         And,
         Or,
     }
@@ -41,6 +41,7 @@ static class WindowsStuff {
     internal unsafe static void Foob () {
 
     }
+
     [DllImport("ntdll.dll", CallingConvention = CallingConvention.StdCall, ExactSpelling = true, SetLastError = true)]
     internal unsafe static extern ulong VerSetConditionMask (ulong l, int i, byte condition);
 
@@ -49,12 +50,11 @@ static class WindowsStuff {
 
     internal static bool IsWindows10BuildOrGreaterWin32 (ushort build) {
         var versionInfo = new OsVersionInfoExW() { dwOSVersionInfoSize = Marshal.SizeOf<OsVersionInfoExW>(), dwMajorVersion = 10, dwBuildNumber = build };
-        var mask = Ver.MAJORVERSION | Ver.MINORVERSION | Ver.BUILDNUMBER;
-        var condition = VerSetConditionMask(0, (int)Ver.MAJORVERSION, (byte)Op.Greater_equal);
-        condition = VerSetConditionMask(condition, (int)Ver.MINORVERSION, (byte)Op.Greater_equal);
-        condition = VerSetConditionMask(condition, (int)Ver.BUILDNUMBER, (byte)Op.Greater_equal);
+        var mask = Ver.MajorVersion | Ver.MinorVersion | Ver.BuildNumber;
+        var condition = VerSetConditionMask(0, (int)Ver.MajorVersion, (byte)Op.GreaterEqual);
+        condition = VerSetConditionMask(condition, (int)Ver.MinorVersion, (byte)Op.GreaterEqual);
+        condition = VerSetConditionMask(condition, (int)Ver.BuildNumber, (byte)Op.GreaterEqual);
 
         throw new NotImplementedException();
     }
-
 }
