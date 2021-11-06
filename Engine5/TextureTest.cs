@@ -20,11 +20,15 @@ class TextureTest:GlWindowBase {
     private Raster ui;
 
     unsafe private void UploadTexture () {
+#if _PERF_
         Enter(Events.Texture);
+#endif
         var clientSize = GetClientSize();
         fixed(byte* p = ui.Pixels)
             TextureSubImage2D(uiTexture, 0, 0, 0, clientSize.X, clientSize.Y, TextureFormat.Bgra, Const.UNSIGNED_BYTE, p);
+#if _PERF_
         Leave();
+#endif
     }
 
     protected unsafe override void Init () {

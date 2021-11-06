@@ -66,6 +66,7 @@ unsafe public static class Calls {
     private static readonly delegate* unmanaged[Cdecl]<void> glFinish;
     private static readonly delegate* unmanaged[Cdecl]<int, int, void> glBlendFunc;
 
+#pragma warning disable CS0169
     private static readonly delegate* unmanaged[Cdecl]<int, bool> glIsBuffer;
     private static readonly delegate* unmanaged[Cdecl]<int, bool> glIsProgram;
     private static readonly delegate* unmanaged[Cdecl]<int, bool> glIsShader;
@@ -95,6 +96,7 @@ unsafe public static class Calls {
     private static readonly delegate* unmanaged[Cdecl]<int, int, float*, void> glUniform2fv;
     private static readonly delegate* unmanaged[Cdecl]<int, TextureParameter, float*, void> glGetTextureParameterfv;
     private static readonly delegate* unmanaged[Cdecl]<int, TextureParameter, int*, void> glGetTextureParameteriv;
+#pragma warning restore CS0169
 #pragma warning restore CS0649
 
     public static bool IsEnabled (Capability cap) => glIsEnabled(cap);

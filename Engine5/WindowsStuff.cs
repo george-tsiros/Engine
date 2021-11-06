@@ -25,6 +25,7 @@ static class WindowsStuff {
         Or,
     }
 
+#pragma warning disable CS0649
     internal unsafe struct OsVersionInfoExW {
         public int dwOSVersionInfoSize;
         public int dwMajorVersion;
@@ -38,6 +39,8 @@ static class WindowsStuff {
         public byte wProductType;
         public byte wReserved;
     }
+#pragma warning restore CS0649
+
     internal unsafe static void Foob () {
 
     }

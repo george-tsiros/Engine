@@ -85,19 +85,15 @@ class Program:Form {
         Invalidate();
     }
     unsafe protected override void OnPaintBackground (PaintEventArgs args) {
-        Debug.Assert(BackgroundImage is Bitmap);
-        var t0 = Stopwatch.GetTimestamp();
         using (var g = Graphics.FromImage(BackgroundImage))
             g.Clear(Color.Black);
         var b = (Bitmap)BackgroundImage;
         var l = b.LockBits(ImageLockMode.WriteOnly);
-        Debug.Assert(l.Stride == 4 * l.Width);
         var p = (uint*)l.Scan0.ToPointer();
         var w = l.Width;
         foreach (var pt in points)
-            p[w * pt.Y + pt.X] = ~0u;
-        var t1 = Stopwatch.GetTimestamp();
-        Debug.WriteLine((t1 - t0) / (double)Stopwatch.Frequency);
+            if (0 <= pt.Y && pt.Y < l.Height && 0 <= pt.X && pt.X < w)
+                p[w * pt.Y + pt.X] = ~0u; 
         b.UnlockBits(l);
         base.OnPaintBackground(args);
     }
@@ -130,11 +126,11 @@ class Program:Form {
 
     private volatile static bool run = true;
     private static void Main () {
-        var thread = new Thread(Proc);
-        thread.Start();
-        _ = Console.ReadLine();
-        run = false;
-        thread.Join();
+        //var thread = new Thread(Proc);
+        //thread.Start();
+        //_ = Console.ReadLine();
+        //run = false;
+        //thread.Join();
         Application.Run(new Program());
     }
 }

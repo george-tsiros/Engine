@@ -151,7 +151,7 @@ public static class Glfw {
     /// <param name="cb">The new callback, or <c>null</c> to remove the currently set callback.</param>
     /// <returns>The previously set callback, or <c>null</c> if no callback was set or the library had not been initialized.</returns>
     [DllImport(LIBRARY, EntryPoint = "glfwSetWindowMaximizeCallback", CallingConvention = CallingConvention.Cdecl)]
-    public static extern WindowMaximizedCallback SetWindowMaximizeCallback (IntPtr window,
+    public static extern WindowMaximizedCallback SetWindowMaximizeCallback (Window window,
         WindowMaximizedCallback cb);
     /// <summary>
     ///     Sets the window content scale callback of the specified window, which is called when the content scale of the
@@ -162,7 +162,7 @@ public static class Glfw {
     /// <returns>The previously set callback, or <c>null</c> if no callback was set or the library had not been initialized.</returns>
     [DllImport(LIBRARY, EntryPoint = "glfwSetWindowContentScaleCallback",
         CallingConvention = CallingConvention.Cdecl)]
-    public static extern WindowContentsScaleCallback SetWindowContentScaleCallback (IntPtr window,
+    public static extern WindowContentsScaleCallback SetWindowContentScaleCallback (Window window,
         WindowContentsScaleCallback cb);
     /// <summary>
     ///     Returns the platform-specific scan-code of the specified key.

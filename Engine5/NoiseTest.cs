@@ -5,6 +5,7 @@ using static Gl.Calls;
 using Shaders;
 using System.Numerics;
 using System;
+using System.Diagnostics;
 
 class NoiseTest:GlWindowBase {
     public NoiseTest (GLFW.Monitor m) : base(m) => Assert();
@@ -15,14 +16,15 @@ class NoiseTest:GlWindowBase {
     }
     private VertexArray quad;
     private Sampler2D tex;
-    private const int _WIDTH = 256, _HEIGHT = 180;
+    private const int _WIDTH = 1024 >> 2, _HEIGHT = 576 >> 2;
     private const float _XSCALE = 1000f / _WIDTH, _YSCALE = 1000f / _HEIGHT;
     private readonly byte[] bytes = new byte[_WIDTH * _HEIGHT * 4];
     private const int _THREADCOUNT = 4;
     private const int _ROWS_PER_THREAD = _HEIGHT / _THREADCOUNT;
     private FastNoiseLite[] noises;
     private CountdownEvent countdown;
-
+    private long ticks;
+    private readonly Stats stats = new(60);
     private void ProcArrays (int threadIndex) {
         var ms = FramesRendered;
         var start = _ROWS_PER_THREAD * threadIndex;
@@ -44,7 +46,12 @@ class NoiseTest:GlWindowBase {
                 bytes[++offset] = (byte)(127.5f * red + 127.5);
             }
         }
-        _ = countdown.Signal();
+        var done = countdown.Signal();
+        if (done) {
+            var seconds = (double)(Stopwatch.GetTimestamp() - ticks) / Stopwatch.Frequency;
+            stats.AddDatum(seconds);
+            SetTitle((1000.0 * stats.Mean).ToString());
+        }
     }
 
     unsafe protected override void Init () {
@@ -78,6 +85,7 @@ class NoiseTest:GlWindowBase {
     }
 
     private unsafe void StartThreads () {
+        ticks = Stopwatch.GetTimestamp();
         for (var i = 0; i < _THREADCOUNT; ++i) {
             var ok = ThreadPool.QueueUserWorkItem(ProcArrays, i, true);
             if (!ok)

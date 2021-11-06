@@ -12,7 +12,7 @@ using System.Runtime.CompilerServices;
 #endif
 
 class GlWindowBase:IDisposable {
-
+#if __PERF__
     protected enum Events {
         Render = 1,
         Delay,
@@ -25,6 +25,7 @@ class GlWindowBase:IDisposable {
         LockBits,
         Graphics,
     }
+#endif
 
     unsafe private GlWindowBase (int width, int height, Monitor monitor) {
         Window = Glfw.CreateWindow(width, height, GetType().Name, monitor, Window.None);
@@ -64,7 +65,7 @@ class GlWindowBase:IDisposable {
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
 #endif
     protected long GetTicks () => Stopwatch.GetTimestamp() - startTicks;
-    protected Camera Camera { get; } = new Camera(new(0f, 0f, 4f));
+    protected Camera Camera { get; } = new(new(0f, 0f, 4f));
 
     private int desiredFramerate = 80;
     private float FrameDuration => 1.0f / desiredFramerate;
@@ -90,6 +91,7 @@ class GlWindowBase:IDisposable {
         lastMousePosition = new(Convert.ToInt32(mx), Convert.ToInt32(my));
         State.LineSmooth = true;
         State.Dither = false;
+        Glfw.SetWindowPosition(Window, 50, 50);
         Glfw.ShowWindow(Window);
         OnWindowFocus(Window, Glfw.GetWindowAttribute(Window, WindowAttribute.Focused));
         CursorGrabbed = isFullscreen;
@@ -150,6 +152,8 @@ class GlWindowBase:IDisposable {
         set => Glfw.SetInputMode(Window, InputMode.Cursor, (cursorGrabbed = value) ? (int)CursorMode.Disabled : (int)CursorMode.Normal);
     }
 
+    private static Regex NameMatch { get; } = new(@"^Set(\w+)Callback$");
+
     protected void SetTitle (string value) => Glfw.SetWindowTitle(Window, value);
     [KeyBinding(Keys.F1)]
     protected void CycleSwapInterval (Keys _, InputState state) {
@@ -182,7 +186,48 @@ class GlWindowBase:IDisposable {
     }
     private readonly DebugProc debugProc;
 
-#pragma warning disable IDE0052 // Remove unread private members
+    private static bool ParametersAreOk (ParameterInfo[] parameters) => parameters.Length switch {
+        1 => true,
+        2 => ReferenceEquals(parameters[0].ParameterType, typeof(Window)),
+        _ => false,
+    };
+
+    private void Assign (MethodInfo glfwMethod) {
+        const BindingFlags privateInstance = BindingFlags.NonPublic | BindingFlags.Instance;
+        if (glfwMethod.IsSpecialName)
+            throw new AssignException(nameof(MethodInfo.IsSpecialName));
+        var m = NameMatch.Match(glfwMethod.Name);
+        if (!m.Success)
+            throw new AssignException("name doesn't match");
+        var parameters = glfwMethod.GetParameters();
+        if (!ParametersAreOk(parameters))
+            throw new AssignException($"parameters are {string.Join(", ", Array.ConvertAll(parameters, p => p.ParameterType.Name))}");
+        var name = m.Groups[1].Value;
+        var localField = typeof(GlWindowBase).GetField($"on{name}", privateInstance) ?? throw new AssignException("no field found");
+        var localMethod = typeof(GlWindowBase).GetMethod($"On{name}", privateInstance) ?? throw new AssignException("no method found");
+        var callbackType = parameters[^1].ParameterType;
+        var callback = localMethod.CreateDelegate(callbackType, this);
+        localField.SetValue(this, callback);
+        var paramArray = parameters.Length == 2 ? new object[] { Window, callback } : new object[] { callback };
+        var prevCallback = glfwMethod.Invoke(null, paramArray);
+        Debug.Assert(prevCallback is null);
+    }
+
+    private void Assign () {
+        foreach (var glfwMethod in typeof(Glfw).GetMethods(BindingFlags.Public | BindingFlags.Static))
+            try {
+                Assign(glfwMethod);
+
+            }
+            catch (AssignException e) {
+                Utilities.Trace($"{glfwMethod.Name} failed: {e.Message}");
+            }
+    }
+
+#pragma warning disable IDE0051 // Remove unused private members
+#pragma warning disable IDE0060 // Remove unused parameter
+#pragma warning disable CA1822 // Mark members as static
+#pragma warning disable IDE0044 // Add readonly modifier
     private CharCallback onChar;
     private CharModsCallback onCharMods;
     private FileDropCallback onDrop;
@@ -199,56 +244,6 @@ class GlWindowBase:IDisposable {
     private WindowCallback onWindowRefresh, onClose;
     private WindowContentsScaleCallback onWindowContentScale;
     private WindowMaximizedCallback onWindowMaximize;
-#pragma warning restore IDE0052 // Remove unread private members
-    private void Assign () {
-        var nameMatch = new Regex(@"^Set(\w+)Callback$");
-        foreach (var x in typeof(Glfw).GetMethods(BindingFlags.Public | BindingFlags.Static)) 
-            if (nameMatch.TryMatch(x.Name, out var m)) {
-                var parameters = x.GetParameters();
-                if (parameters.Length == 1 || parameters.Length == 2) { 
-                
-                }
-            }
-        onChar = OnChar;
-        onCharMods = OnCharMods;
-        onClose = OnClose;
-        onCursorEnter = OnCursorEnter;
-        onCursorPosition = OnCursorPosition;
-        onDrop = OnDrop;
-        onFramebufferSize = OnFramebufferSize;
-        onKey = OnKey;
-        onJoystick = OnJoystick;
-        onMonitor = OnMonitor;
-        onMouseButton = OnMouseButton;
-        onScroll = OnScroll;
-        onWindowContentScale = OnWindowContentScale;
-        onWindowFocus = OnWindowFocus;
-        onWindowIconify = OnWindowIconify;
-        onWindowMaximize = OnWindowMaximize;
-        onWindowPosition = OnWindowPosition;
-        onWindowRefresh = OnWindowRefresh;
-        onWindowSize = OnWindowSize;
-        _ = Glfw.SetCharCallback(Window, onChar);
-        _ = Glfw.SetCharModsCallback(Window, onCharMods);
-        _ = Glfw.SetCloseCallback(Window, onClose);
-        _ = Glfw.SetCursorEnterCallback(Window, onCursorEnter);
-        _ = Glfw.SetCursorPositionCallback(Window, onCursorPosition);
-        _ = Glfw.SetDropCallback(Window, onDrop);
-        _ = Glfw.SetFramebufferSizeCallback(Window, onFramebufferSize);
-        _ = Glfw.SetKeyCallback(Window, onKey);
-        _ = Glfw.SetJoystickCallback(onJoystick);
-        _ = Glfw.SetMonitorCallback(onMonitor);
-        _ = Glfw.SetMouseButtonCallback(Window, onMouseButton);
-        _ = Glfw.SetScrollCallback(Window, onScroll);
-        _ = Glfw.SetWindowContentScaleCallback(Window, onWindowContentScale);
-        _ = Glfw.SetWindowFocusCallback(Window, onWindowFocus);
-        _ = Glfw.SetWindowIconifyCallback(Window, onWindowIconify);
-        _ = Glfw.SetWindowMaximizeCallback(Window, onWindowMaximize);
-        _ = Glfw.SetWindowPositionCallback(Window, onWindowPosition);
-        _ = Glfw.SetWindowRefreshCallback(Window, onWindowRefresh);
-        _ = Glfw.SetWindowSizeCallback(Window, onWindowSize);
-    }
-
     private void OnWindowContentScale (Window _, float xScale, float yScale) { }
     private void OnScroll (Window _, double x, double y) { }
     private void OnJoystick (Joystick joystick, ConnectionStatus status) { }
@@ -263,7 +258,6 @@ class GlWindowBase:IDisposable {
     private void OnWindowMaximize (Window _, bool maximized) { }
     private void OnMouseButton (Window _, MouseButton button, InputState state, ModifierKeys modifiers) { }
     private void OnChar (Window _, uint code) { }
-
     private Vector2i lastMousePosition;
     private void OnCursorPosition (Window _, double x, double y) {
 #if __PERF__
@@ -279,19 +273,25 @@ class GlWindowBase:IDisposable {
 #endif
     }
 
+    private void OnFramebufferSize (Window _, int width, int height) { }
+
+    private void OnKey (Window _, Keys key, int code, InputState state, ModifierKeys modifier) {
+        if (keys.TryGetValue(key, out var keyAction))
+            keyAction(key, state);
+    }
+
+#pragma warning restore IDE0044 // Add readonly modifier
+#pragma warning restore CA1822 // Mark members as static
+#pragma warning restore IDE0060 // Remove unused parameter
+#pragma warning restore IDE0051 // Remove unused private members
+
+
     private void OnWindowFocus (Window _, bool focused) {
         Focused = focused;
         if (!focused)
             CursorGrabbed = false;
         else if (isFullscreen)
             CursorGrabbed = true;
-    }
-
-    private void OnFramebufferSize (Window _, int width, int height) { }
-
-    private void OnKey (Window _, Keys key, int code, InputState state, ModifierKeys modifier) {
-        if (keys.TryGetValue(key, out var keyAction))
-            keyAction(key, state);
     }
 
     [KeyBinding(Keys.Z, Keys.X, Keys.C, Keys.D, Keys.LeftShift, Keys.LeftControl)]
