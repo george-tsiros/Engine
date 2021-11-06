@@ -184,7 +184,9 @@ class GlWindowBase:IDisposable {
             Utilities.Trace($"{nameof(CursorGrabbed)}: {CursorGrabbed}");
         }
     }
+#pragma warning disable IDE0052 // Remove unread private members
     private readonly DebugProc debugProc;
+#pragma warning restore IDE0052 // Remove unread private members
 
     private static bool ParametersAreOk (ParameterInfo[] parameters) => parameters.Length switch {
         1 => true,
@@ -228,6 +230,7 @@ class GlWindowBase:IDisposable {
 #pragma warning disable IDE0060 // Remove unused parameter
 #pragma warning disable CA1822 // Mark members as static
 #pragma warning disable IDE0044 // Add readonly modifier
+#pragma warning disable CS0169 // unused member
     private CharCallback onChar;
     private CharModsCallback onCharMods;
     private FileDropCallback onDrop;
@@ -284,6 +287,7 @@ class GlWindowBase:IDisposable {
 #pragma warning restore CA1822 // Mark members as static
 #pragma warning restore IDE0060 // Remove unused parameter
 #pragma warning restore IDE0051 // Remove unused private members
+#pragma warning restore CS0169 // unused member
 
 
     private void OnWindowFocus (Window _, bool focused) {

@@ -48,7 +48,7 @@
 
     <ItemGroup>
         <None Update="data\font.png">
-          <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
         </None>
         <None Update="hints.txt">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -56,7 +56,10 @@
     </ItemGroup>
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-      <Exec Command="C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe data\skybox.png $(targetdir) &#xD;&#xA;C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe data\font.png $(targetdir)&#xD;&#xA;C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe data\checkered.png $(targetdir)&#xD;&#xA;C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe data\untitled.png $(targetdir)" />
+        <Exec Command="C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe data\skybox.png $(targetdir)"/>
+        <Exec Command="C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe data\font.png $(targetdir)" />
+        <Exec Command="C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe data\checkered.png $(targetdir)" />
+        <Exec Command="C:\projects\source\Engine\BitmapToRaster\bin\BitmapToRaster.exe data\untitled.png $(targetdir)" />
     </Target>
 
 </Project>
