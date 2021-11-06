@@ -10,10 +10,8 @@ using System;
 [SuppressUnmanagedCodeSecurity]
 public static class Glfw {
     public const string LIBRARY = "glfw";
-    private static readonly ErrorCallback errorCallback = GlfwError;
     static Glfw () {
-        Init();
-        SetErrorCallback(errorCallback);
+        _ = Init();
     }
     /// <summary>
     ///     Returns and clears the error code of the last error that occurred on the calling thread, and optionally
@@ -1598,5 +1596,4 @@ public static class Glfw {
         minor = GetWindowAttribute(window, (int)ContextAttributes.ContextVersionMinor);
         revision = GetWindowAttribute(window, (int)ContextAttributes.ContextVersionRevision);
     }
-    private static void GlfwError (ErrorCode code, IntPtr message) => throw new GlfwException(Util.PtrToStringUni(message));
 }
